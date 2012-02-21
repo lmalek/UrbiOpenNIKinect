@@ -1,0 +1,57 @@
+UrbiOpenNIKinect
+--------------------------------------------------------------------------------
+INFO
+--------------------------------------------------------------------------------
+
+This Kinect module for URBI based on OpenNI
+This software is distributed under GPL licence. Use it on your own risk.
+
+--------------------------------------------------------------------------------
+REQUIREMENTS
+--------------------------------------------------------------------------------
+
+1. Download unstable OpenNI and NITE from 
+   http://www.openni.org/Downloads/OpenNIModules.aspx 
+   tested on:
+	- OpenNI-Bin-Dev-Linux-x64-v1.5.2.23
+	- NITE-Bin-Dev-Linux-x64-v1.5.2.21
+2. Install OpenNI and NITE
+3. Download SensorKinect from avin2 github
+   https://github.com/avin2/SensorKinect
+   The easiest way is to download ZIP archive.
+4. Extract SensorKinect archive. Go to extracted direcotry.
+   Build sensor according to the information from README.
+   Go to Bin dir end extrac SensorKinect... suitable for your system.
+5. Install SensorKinect
+6. Adjust NITE to work with Kinect
+   cp NITE_Data/*.xml [NITE_DIR]/Data/
+7. Reboot
+8. Make sure that your user has permission to use kinect device
+9. Plug Kinect and test it with 
+   [OpenNI-DIR]/Samples/Bin/[...]/NIViewer 
+   
+
+
+--------------------------------------------------------------------------------
+INSTALATION
+--------------------------------------------------------------------------------
+
+This library is prepared to work with the cmake.
+Create new directory
+
+mkdir build
+
+then run cmake, ccmake or cmake-gui to configure project
+
+ccmake ../
+
+after configuring project type
+
+make
+
+
+
+--------------------------------------------------------------------------------
+NOTES
+--------------------------------------------------------------------------------
+
