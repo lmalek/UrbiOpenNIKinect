@@ -1,6 +1,11 @@
 # NetBeans project dir
-/nbproject
+/nbproject/
 # cmake files
-/CMakeFiles
-CMakeCache.txt 
+/CMakeFiles/
+CMakeCache.txt
 cmake_install.cmake
+Makefile
+src/*.so.*
+src/*.so
+*/CMakeFiles/*
+
