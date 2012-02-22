@@ -8,4 +8,4 @@ Makefile
 src/*.so.*
 src/*.so
 */CMakeFiles/*
-
+/build/
