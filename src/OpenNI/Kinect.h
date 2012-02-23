@@ -91,9 +91,11 @@ namespace OpenNI {
         xn::UserGenerator g_UserGenerator;
         xn::Player g_Player;
         
-        void OpenMotor() throw (std::runtime_error);;
+        void OpenMotor() throw (std::runtime_error);
         void CloseMotor();
+        void Init() throw (std::runtime_error);
         
+        std::string sample_xml_path; "SamplesConfig.xml"
     };
 };
 

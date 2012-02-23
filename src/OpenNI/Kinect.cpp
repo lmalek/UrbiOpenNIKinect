@@ -10,7 +10,8 @@
 using namespace OpenNI;
 
 Kinect::Kinect() {
-    m_isOpen = false;    
+    m_isOpen = false;
+    sample_xml_path = "SamplesConfig.xml";
 }
 
 Kinect::Kinect(const Kinect& orig) {
@@ -25,7 +26,7 @@ Kinect::~Kinect() {
     g_Context.Release();
 }
 
-void Kinect::Open() throw (std::runtime_error){
+void Kinect::Open() throw (std::runtime_error) {
     OpenMotor();
 }
 
@@ -33,65 +34,71 @@ void Kinect::Close() {
     CloseMotor();
 }
 
-
-void Kinect::OpenMotor() throw (std::runtime_error)
-{
+void Kinect::OpenMotor() throw (std::runtime_error) {
     const XnUSBConnectionString *paths;
     XnUInt32 count;
     XnStatus res;
-    
+
     // Init OpenNI USB
     res = xnUSBInit();
-    if (res != XN_STATUS_OK)
-    {
+    if (res != XN_STATUS_OK) {
         throw std::runtime_error("xnUSBInit failed");
     }
-    
+
     // Open all "Kinect motor" USB devices
     res = xnUSBEnumerateDevices(0x045E /* VendorID */, 0x02B0 /*ProductID*/, &paths, &count);
-    if (res != XN_STATUS_OK)
-    {
-       throw std::runtime_error("xnUSBEnumerateDevices failed");
+    if (res != XN_STATUS_OK) {
+        throw std::runtime_error("xnUSBEnumerateDevices failed");
     }
-    
+
     // Open devices
-    for (XnUInt32 index = 0; index < count; ++index)
-    {
+    for (XnUInt32 index = 0; index < count; ++index) {
         res = xnUSBOpenDeviceByPath(paths[index], &m_devs[index]);
         if (res != XN_STATUS_OK) {
-            
+
             throw std::runtime_error("xnUSBOpenDeviceByPath failed");
         }
     }
-    
+
     m_num = count;
     XnUChar buf[1]; // output buffer
-    
+
     // Init motors
-    for (XnUInt32 index = 0; index < m_num; ++index)
-    {
-        res = xnUSBSendControl(m_devs[index], XN_USB_CONTROL_TYPE_VENDOR, 0x10, 0x00, 0x00, buf, sizeof(buf), 0);
+    for (XnUInt32 index = 0; index < m_num; ++index) {
+        res = xnUSBSendControl(m_devs[index], XN_USB_CONTROL_TYPE_VENDOR, 0x10, 0x00, 0x00, buf, sizeof (buf), 0);
         if (res != XN_STATUS_OK) {
             CloseMotor();
             throw std::runtime_error("xnUSBSendControl failed");
         }
-        
+
         res = xnUSBSendControl(m_devs[index], XN_USB_CONTROL_TYPE_VENDOR, 0x06, 0x02, 0x00, NULL, 0, 0);
         if (res != XN_STATUS_OK) {
             CloseMotor();
             throw std::runtime_error("xnUSBSendControl failed");
         }
     }
-    
+
     m_isOpen = true;
 }
 
-void Kinect::CloseMotor()
-{
+void Kinect::CloseMotor() {
     if (m_isOpen) {
         for (XnUInt32 index = 0; index < m_num; ++index) {
             xnUSBCloseDevice(m_devs[index]);
         }
         m_isOpen = false;
+    }
+}
+
+void Kinect::Init() {
+    XnStatus nRetVal = XN_STATUS_OK;
+    xn::EnumerationErrors errors;
+    nRetVal = g_Context.InitFromXmlFile(SAMPLE_XML_PATH, g_scriptNode, &errors);
+    if (nRetVal == XN_STATUS_NO_NODE_PRESENT) {
+        XnChar strError[1024];
+        errors.ToString(strError, 1024);
+        throw std::runtime_error(strError);
+    } else if (nRetVal != XN_STATUS_OK) {
+        throw std::runtime_error(xnGetStatusString(nRetVal));
     }
 }
