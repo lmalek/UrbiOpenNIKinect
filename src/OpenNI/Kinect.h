@@ -8,12 +8,15 @@
 #ifndef OPENNIKINECT_H
 #define	OPENNIKINECT_H
 
+#include <XnOpenNI.h>
+#include <XnCodecIDs.h>
 #include <XnCppWrapper.h>
+#include <XnPropNames.h>
 #include <XnUSB.h>
 #include <stdexcept>
 
 namespace OpenNI {
-    
+
     class Kinect {
     public:
 
@@ -54,7 +57,7 @@ namespace OpenNI {
          * Close device.
          */
         void Close();
-        
+
         bool Opened();
         void SetMotorPosition(double pos);
         void SetLedMode(int NewMode);
@@ -62,8 +65,6 @@ namespace OpenNI {
 
         void Run();
         void Stop();
-
-        void SetRGBMode(int newmode);
 
         unsigned short mDepthBuffer[DEPTH_WIDTH * DEPTH_HEIGHT];
         unsigned char mColorBuffer[COLOR_WIDTH * COLOR_HEIGHT * 4];
@@ -80,7 +81,10 @@ namespace OpenNI {
         void ParseDepthBuffer();
 
     private:
-        enum { MaxDevs = 16 };
+
+        enum {
+            MaxDevs = 16
+        };
         XN_USB_DEV_HANDLE m_devs[MaxDevs];
         XnUInt32 m_num;
         bool m_isOpen;
@@ -90,12 +94,25 @@ namespace OpenNI {
         xn::DepthGenerator g_DepthGenerator;
         xn::UserGenerator g_UserGenerator;
         xn::Player g_Player;
-        
+
         void OpenMotor() throw (std::runtime_error);
         void CloseMotor();
         void Init() throw (std::runtime_error);
-        
-        std::string sample_xml_path; "SamplesConfig.xml"
+
+        std::string sample_xml_path;
+        std::string pose_to_use;
+
+        void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator,
+                XnUserID nId, void* pCookie);
+        void XN_CALLBACK_TYPE User_LostUser(xn::UserGenerator& generator,
+                XnUserID nId, void* pCookie);
+        void XN_CALLBACK_TYPE Pose_Detected(xn::PoseDetectionCapability& pose,
+                const XnChar* strPose, XnUserID nId, void* pCookie);
+        void XN_CALLBACK_TYPE Calibration_Start(
+                xn::SkeletonCapability& capability, XnUserID nId, void* pCookie);
+        void XN_CALLBACK_TYPE Calibration_End(
+                xn::SkeletonCapability& capability, XnUserID nId, XnBool bSuccess,
+                void* pCookie);
     };
 };
 
