@@ -8,112 +8,52 @@
 #ifndef UOPENNIKINECT_H
 #define	UOPENNIKINECT_H
 
+
 #include <urbi/uobject.hh>
-#include <urbi/ubinary.hh>
-#include <urbi/uimage.hh>
+#include "UKinectModule.h"
 
-#define DEPTH_SRC "DepthSource"
-#define COLOR_SRC "ColorSource"
-
-using namespace urbi;
-using namespace std;
-
-class UKinect: public urbi::UObject
-{
+class UKinectCamera : public UKinectModule {
 public:
-	UKinect(const std::string& s);
-	~UKinect();
+    // Urbi constructor. Throw error in case of error.
+    UKinectCamera(const std::string& name);
+    virtual ~UKinectCamera();
 
-	// constructor
-	int init(); 
+    virtual int update();
+    
+    void init(int);
+private:    
+    // Our image variable and dimensions
+    urbi::UVar image;
+    urbi::UVar width;
+    urbi::UVar height;
+    urbi::UVar fps;
+    urbi::UVar notify;
+    urbi::UVar flip;
 
-	bool isReady, isActive;
-	float mMotorPosition;
-	int mLedMode, mRGBMode;
-	unsigned long oldDepthFrame, oldColorFrame;
+    bool mGetNewFrame; //
+    unsigned int mFrame; // ID of already grabed frame
+    unsigned int mAccessFrame; // ID of already retrieved frame
 
-	// is device ready
-	urbi::UVar	deviceReady;
-	// device ID and count
-	urbi::UVar deviceID;
-	urbi::UVar deviceCount;
-	void setDeviceID(int id);
+    // Called on access.
+    void getImage();
 
-	// kinect depth and color image
-	urbi::UBinary mDepthImage;
-	urbi::UBinary mColorImage;
-	// captured image
-	urbi::UBinary mCaptureImage;
+    //
+    void changeNotifyImage(urbi::UVar&);
 
-	// RGB or IR mode
-	urbi::UVar rgbmode;
-	void setRGBMode(int rgb);
-	void getRGBMode();
+    // Mutex and conditional variable to synchronize threads
+    boost::mutex getValMutex;
 
-	// accelerometer urbi var
-	urbi::UVar kX, kY, kZ;
+    // Storage for last captured image.
+    urbi::UBinary mBinImage;
 
-	// urbi side depthImage, colorImage and captured
-	urbi::UVar val, colordata, depthdata, capturedata;
-	// std width and height
-	urbi::UVar width, height;
+    void fpsChanged();
 
-	// init kinect device
-	urbi::UReturn open();
-	// close session
-	void close();
-
-	// Kinect Motor
-	urbi::UVar motor;
-	void setMotor(double pos);
-	void getMotor();
-
-	// Kinect led Mode
-	urbi::UVar led;
-	void setLed(int col);
-	void getLed();
-
-	// Called periodically to get image data
-	virtual int update (); 	
-
-	// Kinect instance
-	OpenNI::Kinect	*mKin;
-	// Kinect Listener
-        
-	// device found?
-	void getDevState(urbi::UVar& v);
-	// get Accel value
-	void getAccel(urbi::UVar& v);
-	void GetAccelerometer();
-
-	// get val (return depth image)
-	void getVal (urbi::UVar& v);
-	// get image data
-	void getColorImage (urbi::UVar& v);
-	void getDepthImage (urbi::UVar& v);
-	void getCaptureImage(urbi::UVar& v);
-
-	// opencv bonus
-	// generic create/show/hide window
-	void create(const std::string& wName, int x, int y);
-	void show(urbi::UBinary uimg, const std::string& wName);
-	void hide(const std::string& wName);
-	// capture start/stop
-	void stopcapture();
-	void startcapture(int id);
-	void processCam ();
-
-	// cv windows state
-	bool isDepthShowed, isColorShowed, isCapture;
-	
-	// show/hide depth and color windows
-	void hidecolor();
-	void showcolor();
-	void hidedepth();
-	void showdepth();
-	void showall();
-	void hideall();
+    xn::ImageGenerator imageGenerator;
+    xn::ImageMetaData imageMD;
+    unsigned char* dataRGBPtr;
 };
+
+
 
 
 #endif	/* UOPENNIKINECT_H */

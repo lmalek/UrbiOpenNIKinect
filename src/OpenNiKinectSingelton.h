@@ -11,16 +11,19 @@
 #include <boost/noncopyable.hpp>
 
 #include "UKinectModule.h"
-
+#include <XnCppWrapper.h>
 
 class OpenNIKinectSingelton : public boost::noncopyable {
 public:
-    void registerModule(UKinectModule* uobject);
-    void unregisterModule(UKinectModule* uobject);
+    static OpenNIKinectSingelton& getInstance();
+    xn::Context& getContext();
+    
+    ~OpenNIKinectSingelton();
 
 private:
     OpenNIKinectSingelton();
-    ~OpenNIKinectSingelton();
+    
+    xn::Context context;
 };
 
 #endif	/* OPENNIKINECTSINGELTON_H */

@@ -9,14 +9,13 @@
 #define	UKINECTMODULE_H
 
 #include <urbi/uobject.hh>
+#include <XnCppWrapper.h>
 #include <string>
 
 class UKinectModule : public urbi::UObject {
 public:
-    UKinectModule(const std::string&);
+    UKinectModule(const std::string& name);
     virtual ~UKinectModule();
-    int init();
-private:
 };
 
 #endif	/* UKINECTMODULE_H */

@@ -1,17 +1,20 @@
 set(URBI_ROOT_DIR "/usr" CACHE PATH "Urbi root directory.")
 
-add_subdirectory (OpenNI)
-
 find_package (Urbi REQUIRED)
+#find_package (Boost REQUIRED thread)
 
-include_directories (${URBI_INCLUDE_DIRS})
+link_directories (${BOOST_LIBRARYDIR} /home/lmalek/Pulpit/OpenNI/OpenNI-Bin-Dev-Linux-x64-v1.5.2.23/Lib)
 
-add_library (uopennikinect SHARED uopennikinect.cpp)
+#include_directories (${URBI_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} /home/lmalek/Pulpit/OpenNI/OpenNI-Bin-Dev-Linux-x64-v1.5.2.23/Include)
+include_directories (${URBI_INCLUDE_DIRS} /home/lmalek/Pulpit/OpenNI/OpenNI-Bin-Dev-Linux-x64-v1.5.2.23/Include)
 
-target_link_libraries (uopennikinect  ${URBI_LIBRARIES})
+add_library (UKinectCamera SHARED UKinectCamera.cpp OpenNiKinectSingelton.cpp UKinectModule.cpp)
 
-set_target_properties (uopennikinect PROPERTIES
+#target_link_libraries (UKinectCamera  ${URBI_LIBRARIES}  ${Boost_LIBRARIES} OpenNI)
+target_link_libraries (UKinectCamera  ${URBI_LIBRARIES}  OpenNI)
+
+set_target_properties (UKinectCamera PROPERTIES
   VERSION 0.0.1
   SOVERSION 0.0.1)
 
-#install (TARGETS uopennikinect  DESTINATION lib/gostai/uobjects COMPONENT libraries)
+install (TARGETS UKinectCamera  DESTINATION lib/gostai/uobjects COMPONENT libraries)
