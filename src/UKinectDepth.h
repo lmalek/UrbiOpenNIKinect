@@ -1,20 +1,20 @@
 /* 
- * File:   uopennikinect.h
+ * File:   UKinectDepth.h
  * Author: lmalek
  *
- * Created on 22 luty 2012, 09:55
+ * Created on 15 marzec 2012, 13:13
  */
 
-#ifndef UOPENNIKINECT_H
-#define	UOPENNIKINECT_H
+#ifndef UKINECTDEPTH_H
+#define	UKINECTDEPTH_H
 
 #include "UKinectModule.h"
 
-class UKinectCamera : public UKinectModule {
+class UKinectDepth : public UKinectModule{
 public:
     // Urbi constructor. Throw error in case of error.
-    UKinectCamera(const std::string& name);
-    virtual ~UKinectCamera();
+    UKinectDepth(const std::string& name);
+    virtual ~UKinectDepth();
 
     virtual int update();
     
@@ -46,12 +46,10 @@ private:
 
     void fpsChanged();
 
-    xn::ImageGenerator imageGenerator;
-    xn::ImageMetaData imageMD;
+    xn::DepthGenerator depthGenerator;
+    xn::DepthMetaData depthMD;
+    uint16_t* depthBufor;
 };
 
-
-
-
-#endif	/* UOPENNIKINECT_H */
+#endif	/* UKINECTDEPTH_H */
 

@@ -6,6 +6,7 @@
  */
 #include "UKinectCamera.h"
 #include "OpenNiKinectSingelton.h"
+#include <stdint.h>
 
 using namespace std;
 using namespace urbi;
@@ -62,12 +63,12 @@ void UKinectCamera::init(int) {
     mBinImage.image.height = height.as<size_t > ();
     mBinImage.image.imageFormat = IMAGE_RGB;
     mBinImage.image.size = width.as<size_t > () * height.as<size_t > () * 3;
-    mBinImage.image.data = new unsigned char[mBinImage.image.size];
+    mBinImage.image.data = new uint8_t[mBinImage.image.size];
 
-    memset(mBinImage.image.data, 120, 640 * 480 * 3);
+    memset(mBinImage.image.data, 120, mBinImage.image.size * sizeof(uint8_t));
 
     // Set update period 30
-    fps = 2;
+    fps = 30;
     OpenNIKinectSingelton::getInstance().getContext().StartGeneratingAll();
 }
 
@@ -80,7 +81,7 @@ void UKinectCamera::getImage() {
         mGetNewFrame = false;
         nRetVal = OpenNIKinectSingelton::getInstance().getContext().WaitOneUpdateAll(imageGenerator);
         if (nRetVal != XN_STATUS_OK) {
-            cerr << "UKinectCamera::grabImageThreadFunction() - contex.WaitOneUpdateAll error" << endl;
+            cerr << "UKinectCamera::getImage() - contex.WaitOneUpdateAll error" << endl;
             return;
         }
         else {
@@ -104,7 +105,9 @@ int UKinectCamera::update() {
 }
 
 void UKinectCamera::fpsChanged() {
-    cerr << "UCamera::fpsChanged()" << endl
+    if (fps.as<int>() > imageMD.FPS())
+        fps = imageMD.FPS();
+    cerr << "UKinectCamera::fpsChanged()" << endl
             << "\tCamera fps changed to " << fps.as<int>() << endl;
     USetUpdate(fps.as<int>() > 0 ? 1000.0 / fps.as<int>() : -1.0);
 }
