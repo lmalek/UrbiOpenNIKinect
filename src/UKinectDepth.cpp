@@ -76,6 +76,7 @@ void UKinectDepth::init(int) {
     OpenNIKinectSingelton::getInstance().getContext().StartGeneratingAll();
 }
 
+// depth resolution is 1 per 40 mm
 void UKinectDepth::getImage() {
     // Lock access to this method from urbi
     boost::lock_guard<boost::mutex> lock(getValMutex);
@@ -92,7 +93,7 @@ void UKinectDepth::getImage() {
             depthGenerator.GetMetaData(depthMD);
             //memcpy(depthBufor, depthMD.Data(), mBinImage.image.size*sizeof(uint16_t));
             for (int i=0; i < mBinImage.image.size; i++)
-                mBinImage.image.data[i] = depthMD[i]/40;
+                mBinImage.image.data[i] = depthMD[i]/40; 
             image = mBinImage;
         }
     }
