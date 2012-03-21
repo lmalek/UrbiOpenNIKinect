@@ -1,32 +1,34 @@
 /* 
- * File:   uopennikinect.h
+ * File:   UKinectUser.h
  * Author: lmalek
  *
- * Created on 22 luty 2012, 09:55
+ * Created on 19 marzec 2012, 11:13
  */
 
-#ifndef UOPENNIKINECT_H
-#define	UOPENNIKINECT_H
+#ifndef UKINECTUSER_H
+#define	UKINECTUSER_H
 
 #include "UKinectModule.h"
+#include <map>
+#include <vector>
 
-class UKinectCamera : public UKinectModule {
+#define MAX_NUM_USERS 15
+
+class UKinectUser : public UKinectModule{
+    typedef std::map<XnSkeletonJoint,XnSkeletonJointTransformation> KinectSkeleton;
 public:
     // Urbi constructor. Throw error in case of error.
-    UKinectCamera(const std::string& name);
-    virtual ~UKinectCamera();
+    UKinectUser(const std::string& name);
+    virtual ~UKinectUser();
 
     virtual int update();
 
     void init();
 private:
     // Our image variable and dimensions
-    urbi::UVar image;
-    urbi::UVar width;
-    urbi::UVar height;
     urbi::UVar fps;
     urbi::UVar notify;
-    urbi::UVar flip;
+    urbi::UVar usersCount;
 
     bool mGetNewFrame; //
     unsigned int mFrame; // ID of already grabed frame
@@ -39,7 +41,11 @@ private:
      * mode = 2 - single mode
      */
     void getData(int mode=0);
-
+    
+    std::vector<float> setVectorPosition(unsigned int user, unsigned int jointNumber, XnSkeletonJoint eJoint);
+    
+    std::vector<float> getJointPosition(unsigned int user, unsigned int jointNumber);
+    
     //
     void changeNotifyImage(urbi::UVar&);
 
@@ -51,12 +57,14 @@ private:
 
     void fpsChanged();
 
-    xn::ImageGenerator imageGenerator;
-    xn::ImageMetaData imageMD;
+    xn::UserGenerator userGenerator;
+    
+    XnUserID aUsers[MAX_NUM_USERS];
+    XnUInt16 nUsers;
+    std::map<int, KinectSkeleton> usersSkeleton;
+    
+    void mainThreadFunction();
 };
 
-
-
-
-#endif	/* UOPENNIKINECT_H */
+#endif	/* UKINECTUSER_H */
 

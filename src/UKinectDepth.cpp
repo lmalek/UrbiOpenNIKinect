@@ -18,10 +18,9 @@ UKinectDepth::UKinectDepth(const std::string& name) : UKinectModule(name) {
 
 UKinectDepth::~UKinectDepth() {
     depthGenerator.Release();
-    delete[] depthBufor;
 }
 
-void UKinectDepth::init(int) {
+void UKinectDepth::init() {
     cerr << "UKinectDepth::init()" << endl;
     // Urbi constructor
     mGetNewFrame = true;
@@ -42,7 +41,9 @@ void UKinectDepth::init(int) {
     UBindVar(UKinectDepth, flip);
 
     // Bind all functions
-    UBindThreadedFunction(UKinectDepth, getImage, LOCK_INSTANCE);
+    UBindThreadedFunction(UKinectDepth, getData, LOCK_INSTANCE);
+    UBindFunction(UKinectDepth, getXY);
+    UBindFunction(UKinectDepth, getMedianFromArea);
 
     // Notify if fps changed
     UNotifyChange(fps, &UKinectDepth::fpsChanged);
@@ -57,7 +58,7 @@ void UKinectDepth::init(int) {
 
     cerr << "\tImage size: x=" << width.as<int>() << " y=" << height.as<int>() << endl;
 
-    UNotifyAccess(image, &UKinectDepth::getImage);
+    //UNotifyAccess(image, &UKinectDepth::getData);
 
     mBinImage.type = BINARY_IMAGE;
     mBinImage.image.width = width.as<size_t > ();
@@ -65,45 +66,69 @@ void UKinectDepth::init(int) {
     mBinImage.image.imageFormat = IMAGE_GREY8;
     mBinImage.image.size = width.as<size_t > () * height.as<size_t > ();
     mBinImage.image.data = new uint8_t[mBinImage.image.size];
-    
-    depthBufor = new uint16_t[mBinImage.image.size];
 
     memset(mBinImage.image.data, 120, mBinImage.image.size);
-    memset(depthBufor, 120, mBinImage.image.size*sizeof(uint16_t));
 
     // Set update period 30
     fps = 30;
     OpenNIKinectSingelton::getInstance().getContext().StartGeneratingAll();
 }
 
-// depth resolution is 1 per 40 mm
-void UKinectDepth::getImage() {
+/* 
+ * mode = 0 - slave mode in multi generator work
+ * mode = 1 - master mode in multi generator work
+ * mode = 2 - single mode
+ * depth resolution is 1 per 40 mm
+ */
+void UKinectDepth::getData(int mode) {
     // Lock access to this method from urbi
     boost::lock_guard<boost::mutex> lock(getValMutex);
     XnStatus nRetVal = XN_STATUS_OK;
     // If there is new frame
     if (mGetNewFrame) {
         mGetNewFrame = false;
-        nRetVal = OpenNIKinectSingelton::getInstance().getContext().WaitOneUpdateAll(depthGenerator);
-        if (nRetVal != XN_STATUS_OK) {
-            cerr << "UKinectDepth::getImage() - contex.WaitOneUpdateAll error" << endl;
-            return;
+        if (mode == 1) {
+            nRetVal = OpenNIKinectSingelton::getInstance().getContext().WaitAndUpdateAll();
         }
-        else {
+        if (mode == 2) {
+            nRetVal = OpenNIKinectSingelton::getInstance().getContext().WaitOneUpdateAll(depthGenerator);
+        }
+        if (nRetVal != XN_STATUS_OK) {
+            cerr << "UKinectDepth::getData() - contex.WaitOneUpdateAll error" << endl;
+            return;
+        } else {
             depthGenerator.GetMetaData(depthMD);
-            //memcpy(depthBufor, depthMD.Data(), mBinImage.image.size*sizeof(uint16_t));
-            for (int i=0; i < mBinImage.image.size; i++)
-                mBinImage.image.data[i] = depthMD[i]/40; 
+            for (int i = 0; i < mBinImage.image.size; i++)
+                mBinImage.image.data[i] = depthMD[i] / 40;
             image = mBinImage;
         }
     }
+}
+
+unsigned int UKinectDepth::getXY(unsigned int x, unsigned int y) {
+    return depthMD(x, y);
+}
+
+unsigned int UKinectDepth::getMedianFromArea(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2) {
+    vector<uint16_t> area;
+    uint16_t middle;
+    if (x2 > width.as<int>())
+        x2 = width.as<int>();
+    if (y2 > height.as<int>())
+        y2 = height.as<int>();
+    for (uint16_t x = x1; x <= x2; x++)
+        for (uint16_t y = y1; y <= y2; y++)
+            area.push_back(depthMD(x, y));
+    sort(area.begin(), area.begin());
+    middle = floor(area.size()/2);
+    return area[middle];
 }
 
 void UKinectDepth::changeNotifyImage(UVar & var) {
     // Always unnotify
     image.unnotify();
     if (var.as<bool>())
-        UNotifyAccess(image, &UKinectDepth::getImage);
+        UNotifyAccess(image, &UKinectDepth::getData);
 }
 
 int UKinectDepth::update() {

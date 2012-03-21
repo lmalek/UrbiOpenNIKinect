@@ -55,3 +55,12 @@ make
 NOTES
 --------------------------------------------------------------------------------
 
+Example of usage:
+
+urbi -i --module=libUKinectDepth --module=libUKinectCamera --module=libUKinectUser -P 54000
+
+var Global.Cam=UKinectCamera.new();
+var Global.Dep=UKinectDepth.new();
+var Global.Usr=UKinectUser.new();
+
+Cam.getData(1); Dep.getData(0); Usr.getData(0);

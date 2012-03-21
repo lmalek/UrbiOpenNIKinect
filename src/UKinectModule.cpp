@@ -6,6 +6,7 @@
  */
 
 #include "UKinectModule.h"
+#include "OpenNiKinectSingelton.h"
 
 UKinectModule::UKinectModule(const std::string& name) : UObject(name) {
 }
