@@ -35,7 +35,7 @@ UKinectOpenNI::~UKinectOpenNI() {
         deactivateImage();
     if (depthActive)
         deactivateDepth();
-    if (userActive)
+    if (usersActive)
         deactivateUsers();
     context.Release();
 }
@@ -75,10 +75,12 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindFunction(UKinectOpenNI, getImage);
     UBindFunction(UKinectOpenNI, getDepth);
     UBindFunction(UKinectOpenNI, getUsers);
-    
+
     UBindFunction(UKinectOpenNI, getJointPosition);
     UBindFunction(UKinectOpenNI, getDepthXY);
     UBindFunction(UKinectOpenNI, getDepthMedianFromArea);
+    
+    UBindFunction(UKinectOpenNI, getSkeleton);
 
     // Notify if fps changed
     UNotifyChange(fps, &UKinectOpenNI::fpsChanged);
@@ -87,7 +89,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
 
     imageActive = false;
     depthActive = false;
-    userActive = false;
+    usersActive = false;
 
     if (imageFlag)
         activateImage();
@@ -177,10 +179,9 @@ void UKinectOpenNI::activateUsers() {
     if (nRetVal != XN_STATUS_OK)
         throw runtime_error("[UKinectOpenNI] Failed to initialize user");
 
-    
-        XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected;
-    if (!userGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON))
-    {
+
+    XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected;
+    if (!userGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON)) {
         throw runtime_error("Supplied user generator doesn't support skeleton");
     }
     nRetVal = userGenerator.RegisterUserCallbacks(User_NewUser, User_LostUser, &userGenerator, hUserCallbacks);
@@ -190,25 +191,23 @@ void UKinectOpenNI::activateUsers() {
     nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationComplete(UserCalibration_CalibrationComplete, &userGenerator, hCalibrationComplete);
     CHECK_RC(nRetVal, "Register to calibration complete");
 
-    if (userGenerator.GetSkeletonCap().NeedPoseForCalibration())
-    {
+    if (userGenerator.GetSkeletonCap().NeedPoseForCalibration()) {
         g_bNeedPose = TRUE;
-        if (!userGenerator.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION))
-        {
+        if (!userGenerator.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION)) {
             throw runtime_error("Pose required, but not supported");
         }
         nRetVal = userGenerator.GetPoseDetectionCap().RegisterToPoseDetected(UserPose_PoseDetected, &userGenerator, hPoseDetected);
         CHECK_RC(nRetVal, "Register to Pose Detected");
         userGenerator.GetSkeletonCap().GetCalibrationPose(g_strPose);
     }
-    
+
     userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
-    
-    userActive = true;
+
+    usersActive = true;
 }
 
 void UKinectOpenNI::deactivateUsers() {
-    userActive = false;
+    usersActive = false;
     userGenerator.Release();
 }
 
@@ -228,12 +227,14 @@ void UKinectOpenNI::refreshData() {
 }
 
 void UKinectOpenNI::getImage() {
+    if (!imageActive) return;
     imageGenerator.GetMetaData(imageMD);
     memcpy(mBinImage.image.data, imageMD.Data(), mBinImage.image.size);
     image = mBinImage;
 }
 
 void UKinectOpenNI::getDepth() {
+    if (!depthActive) return;
     depthGenerator.GetMetaData(depthMD);
     for (int i = 0; i < mBinDepth.image.size; i++)
         mBinDepth.image.data[i] = depthMD[i] / 40;
@@ -242,10 +243,12 @@ void UKinectOpenNI::getDepth() {
 }
 
 unsigned int UKinectOpenNI::getDepthXY(unsigned int x, unsigned int y) {
+    if (!depthActive) return 0;
     return depthMD(x, y);
 }
 
 unsigned int UKinectOpenNI::getDepthMedianFromArea(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2) {
+    if (!depthActive) return 0;
     vector<uint16_t> area;
     uint16_t middle;
     if (x2 > depthWidth.as<int>())
@@ -256,13 +259,14 @@ unsigned int UKinectOpenNI::getDepthMedianFromArea(unsigned int x1, unsigned int
         for (uint16_t y = y1; y <= y2; y++)
             area.push_back(depthMD(x, y));
     sort(area.begin(), area.begin());
-    middle = floor(area.size()/2);
+    middle = floor(area.size() / 2);
     return area[middle];
 }
 
 void UKinectOpenNI::getUsers() {
+    if (!usersActive) return;
     nUsers = MAX_NUM_USERS;
-    unsigned int userCount=0;
+    unsigned int userCount = 0;
     userGenerator.GetUsers(aUsers, nUsers);
     for (XnUInt16 i = 0; i < nUsers; i++) {
         if (userGenerator.GetSkeletonCap().IsTracking(aUsers[i]))
@@ -283,16 +287,16 @@ std::vector<float> UKinectOpenNI::setVectorPosition(unsigned int user, XnSkeleto
 
 std::vector<float> UKinectOpenNI::getJointPosition(unsigned int user, unsigned int jointNumber) {
     std::vector<float> position;
-    if (user>numUsers.as<int>()) {
-        cerr<<"[UKinectOpenNI] - wrong user number"<<endl;
+    if (user > numUsers.as<int>()) {
+        cerr << "[UKinectOpenNI] - wrong user number" << endl;
         return position;
     }
     // find user ID
-    if (userGenerator.GetSkeletonCap().IsTracking(user) == FALSE){
-        cerr<<"[UKinectOpenNI] - user not tracked"<<endl;
+    if (userGenerator.GetSkeletonCap().IsTracking(user) == FALSE) {
+        cerr << "[UKinectOpenNI] - user not tracked" << endl;
         return position;
     }
-    if (jointNumber>24)
+    if (jointNumber > 24)
         return position;
     switch (jointNumber) {
         case 1:
@@ -304,45 +308,45 @@ std::vector<float> UKinectOpenNI::getJointPosition(unsigned int user, unsigned i
         case 4:
             return setVectorPosition(user, XN_SKEL_WAIST);
         case 5:
-            return setVectorPosition(user, XN_SKEL_LEFT_COLLAR);         
+            return setVectorPosition(user, XN_SKEL_LEFT_COLLAR);
         case 6:
-            return setVectorPosition(user, XN_SKEL_LEFT_SHOULDER);            
+            return setVectorPosition(user, XN_SKEL_LEFT_SHOULDER);
         case 7:
-            return setVectorPosition(user, XN_SKEL_LEFT_ELBOW);        
+            return setVectorPosition(user, XN_SKEL_LEFT_ELBOW);
         case 8:
-            return setVectorPosition(user, XN_SKEL_LEFT_WRIST);            
+            return setVectorPosition(user, XN_SKEL_LEFT_WRIST);
         case 9:
-            return setVectorPosition(user, XN_SKEL_LEFT_HAND);           
+            return setVectorPosition(user, XN_SKEL_LEFT_HAND);
         case 10:
-            return setVectorPosition(user, XN_SKEL_LEFT_FINGERTIP);           
+            return setVectorPosition(user, XN_SKEL_LEFT_FINGERTIP);
         case 11:
-            return setVectorPosition(user, XN_SKEL_RIGHT_COLLAR);          
+            return setVectorPosition(user, XN_SKEL_RIGHT_COLLAR);
         case 12:
-            return setVectorPosition(user, XN_SKEL_RIGHT_SHOULDER);         
+            return setVectorPosition(user, XN_SKEL_RIGHT_SHOULDER);
         case 13:
-            return setVectorPosition(user, XN_SKEL_RIGHT_ELBOW);           
+            return setVectorPosition(user, XN_SKEL_RIGHT_ELBOW);
         case 14:
-            return setVectorPosition(user, XN_SKEL_RIGHT_WRIST);           
+            return setVectorPosition(user, XN_SKEL_RIGHT_WRIST);
         case 15:
-            return setVectorPosition(user, XN_SKEL_RIGHT_HAND);          
+            return setVectorPosition(user, XN_SKEL_RIGHT_HAND);
         case 16:
-            return setVectorPosition(user, XN_SKEL_RIGHT_FINGERTIP);         
+            return setVectorPosition(user, XN_SKEL_RIGHT_FINGERTIP);
         case 17:
-            return setVectorPosition(user, XN_SKEL_LEFT_HIP);          
+            return setVectorPosition(user, XN_SKEL_LEFT_HIP);
         case 18:
-            return setVectorPosition(user, XN_SKEL_LEFT_KNEE);            
+            return setVectorPosition(user, XN_SKEL_LEFT_KNEE);
         case 19:
-            return setVectorPosition(user, XN_SKEL_LEFT_ANKLE);           
+            return setVectorPosition(user, XN_SKEL_LEFT_ANKLE);
         case 20:
-            return setVectorPosition(user, XN_SKEL_LEFT_FOOT);           
+            return setVectorPosition(user, XN_SKEL_LEFT_FOOT);
         case 21:
-            return setVectorPosition(user, XN_SKEL_RIGHT_HIP);     
+            return setVectorPosition(user, XN_SKEL_RIGHT_HIP);
         case 22:
-            return setVectorPosition(user, XN_SKEL_RIGHT_KNEE);           
+            return setVectorPosition(user, XN_SKEL_RIGHT_KNEE);
         case 23:
-            return setVectorPosition(user, XN_SKEL_RIGHT_ANKLE);            
+            return setVectorPosition(user, XN_SKEL_RIGHT_ANKLE);
         case 24:
-            return setVectorPosition(user, XN_SKEL_RIGHT_FOOT);                               
+            return setVectorPosition(user, XN_SKEL_RIGHT_FOOT);
     }
     return position;
 }
@@ -374,69 +378,71 @@ void UKinectOpenNI::fpsChanged() {
     USetUpdate(fps.as<int>() > 0 ? 1000.0 / fps.as<int>() : -1.0);
 }
 
+void UKinectOpenNI::getSkeleton(UImage src) {
+    cv::Mat processImage(cv::Size(src.width, src.height), CV_8UC3, src.data);
+    
+    cv::cvtColor(skeletonImage, processImage, CV_RGB2GRAY);
+    cv::circle(skeletonImage, cv::Point(100,100), 10, cv::Scalar(255,0,0), 3, 8, 0);
+    
+    mBinSkeleton.image.width = skeletonImage.cols;
+    mBinSkeleton.image.height = skeletonImage.rows;
+    mBinSkeleton.image.size = skeletonImage.cols * skeletonImage.rows * 3;
+    mBinSkeleton.image.data = skeletonImage.data;
+    image = mBinImage;
+}
+
 /*
  *
  * 
  */
 
 // Callback: New user was detected
-void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
-{
-    xn::UserGenerator* g_UserGenerator = static_cast<xn::UserGenerator*>(pCookie);
+
+void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie) {
+    xn::UserGenerator* g_UserGenerator = static_cast<xn::UserGenerator*> (pCookie);
     printf("New User %d\n", nId);
     // New user found
-    if (g_bNeedPose)
-    {
+    if (g_bNeedPose) {
         g_UserGenerator->GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
-    }
-    else
-    {
+    } else {
         g_UserGenerator->GetSkeletonCap().RequestCalibration(nId, TRUE);
     }
 }
 // Callback: An existing user was lost
-void XN_CALLBACK_TYPE User_LostUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
-{
-    printf("Lost user %d\n", nId);	
+
+void XN_CALLBACK_TYPE User_LostUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie) {
+    printf("Lost user %d\n", nId);
 }
 // Callback: Detected a pose
-void XN_CALLBACK_TYPE UserPose_PoseDetected(xn::PoseDetectionCapability& capability, const XnChar* strPose, XnUserID nId, void* pCookie)
-{
-    xn::UserGenerator* g_UserGenerator = static_cast<xn::UserGenerator*>(pCookie);
+
+void XN_CALLBACK_TYPE UserPose_PoseDetected(xn::PoseDetectionCapability& capability, const XnChar* strPose, XnUserID nId, void* pCookie) {
+    xn::UserGenerator* g_UserGenerator = static_cast<xn::UserGenerator*> (pCookie);
     printf("Pose %s detected for user %d\n", strPose, nId);
     g_UserGenerator->GetPoseDetectionCap().StopPoseDetection(nId);
     g_UserGenerator->GetSkeletonCap().RequestCalibration(nId, TRUE);
 }
 // Callback: Started calibration
-void XN_CALLBACK_TYPE UserCalibration_CalibrationStart(xn::SkeletonCapability& capability, XnUserID nId, void* pCookie)
-{
+
+void XN_CALLBACK_TYPE UserCalibration_CalibrationStart(xn::SkeletonCapability& capability, XnUserID nId, void* pCookie) {
     printf("Calibration started for user %d\n", nId);
 }
 
-void XN_CALLBACK_TYPE UserCalibration_CalibrationComplete(xn::SkeletonCapability& capability, XnUserID nId, XnCalibrationStatus eStatus, void* pCookie)
-{
-    xn::UserGenerator* g_UserGenerator = static_cast<xn::UserGenerator*>(pCookie);
-    if (eStatus == XN_CALIBRATION_STATUS_OK)
-    {
+void XN_CALLBACK_TYPE UserCalibration_CalibrationComplete(xn::SkeletonCapability& capability, XnUserID nId, XnCalibrationStatus eStatus, void* pCookie) {
+    xn::UserGenerator* g_UserGenerator = static_cast<xn::UserGenerator*> (pCookie);
+    if (eStatus == XN_CALIBRATION_STATUS_OK) {
         // Calibration succeeded
-        printf("Calibration complete, start tracking user %d\n", nId);		
+        printf("Calibration complete, start tracking user %d\n", nId);
         g_UserGenerator->GetSkeletonCap().StartTracking(nId);
-    }
-    else
-    {
+    } else {
         // Calibration failed
         printf("Calibration failed for user %d\n", nId);
-        if(eStatus==XN_CALIBRATION_STATUS_MANUAL_ABORT)
-        {
+        if (eStatus == XN_CALIBRATION_STATUS_MANUAL_ABORT) {
             printf("Manual abort occured, stop attempting to calibrate!");
             return;
         }
-        if (g_bNeedPose)
-        {
+        if (g_bNeedPose) {
             g_UserGenerator->GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
-        }
-        else
-        {
+        } else {
             g_UserGenerator->GetSkeletonCap().RequestCalibration(nId, TRUE);
         }
     }

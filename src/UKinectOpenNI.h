@@ -12,6 +12,8 @@
 #include <XnCppWrapper.h>
 #include <string>
 
+#include <cv.h>
+
 #define MAX_NUM_USERS 10
 
 class UKinectOpenNI : public urbi::UObject {
@@ -39,7 +41,10 @@ public:
     urbi::UVar depth;
     urbi::UVar depthWidth;
     urbi::UVar depthHeight;
-    
+
+    urbi::UVar skeleton;
+    urbi::UVar skeletonWidth;
+    urbi::UVar skeletonHeight;
     urbi::UVar numUsers;
 
     urbi::UVar fps;
@@ -47,53 +52,59 @@ public:
 
     void refreshData();
 
+    // image component functions
     void getImage();
-    void getDepth();
-    void getUsers();
-
     void changeNotifyImage(urbi::UVar & var);
+
+    // depth component functions
+    void getDepth();
     void changeNotifyDepth(urbi::UVar & var);
-    void changeNotifyUsers(urbi::UVar & var);
-    
-    bool isUserTracked(unsigned int nr);
-    std::vector<float> getJointPosition(unsigned int user, unsigned int jointNumber);
-
     unsigned int getDepthXY(unsigned int x, unsigned int y);
-
     unsigned int getDepthMedianFromArea(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2);
 
+    // users component functions
+    void getUsers();
+    void getSkeleton(urbi::UImage src);
+    void changeNotifyUsers(urbi::UVar & var);
+    bool isUserTracked(unsigned int nr);
+    std::vector<float> getJointPosition(unsigned int user, unsigned int jointNumber); 
+   
 private:
 
-    bool imageActive;
-    bool depthActive;
-    bool userActive;
 
     bool mGetNewData; //
     unsigned int mData; // ID of already grabed frame
     unsigned int mAccessData; // ID of already retrieved frame  
-
-    // Storage for last captured image.
-    urbi::UBinary mBinImage;
-    urbi::UBinary mBinDepth;
 
     // Mutex and conditional variable to synchronize threads
     boost::mutex getValMutex;
 
     void fpsChanged();
 
+    xn::Context context;
+
+    // image component variables
+    bool imageActive;
     xn::ImageGenerator imageGenerator;
     xn::ImageMetaData imageMD;
+    urbi::UBinary mBinImage; // Storage for last captured image.
 
+    // depth component variables
+    bool depthActive;
     xn::DepthGenerator depthGenerator;
     xn::DepthMetaData depthMD;
+    urbi::UBinary mBinDepth; // Storage for last captured image.
 
+    // users component variables
+    bool usersActive;
     xn::UserGenerator userGenerator;
-
-    xn::Context context;
-    
+    urbi::UBinary mBinSkeleton; // Storage for last captured image.
     XnUInt16 nUsers;
     XnUserID aUsers[MAX_NUM_USERS];
-    std::vector<float> setVectorPosition(unsigned int user, XnSkeletonJoint eJoint);  
+    cv::Mat skeletonImage;
+
+    // user component functions
+    std::vector<float> setVectorPosition(unsigned int user, XnSkeletonJoint eJoint);
 };
 
 #endif	/* UKINECTOPENNI_H */

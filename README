@@ -83,6 +83,16 @@ t:loop{
     sleep(0.1s);
 },
 
+t:loop{
+    Kinect.refreshData();
+    Kinect.getUsers();
+    if (Kinect.numUsers > 0) {
+        echo(Kinect.numUsers);
+        echo(Kinect.getJointPosition(1,3));
+    };
+    sleep(0.1s);
+},
+
 t:while (Kinect.numUsers==0)
 {   
     Kinect.refreshData();
