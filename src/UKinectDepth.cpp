@@ -13,6 +13,7 @@ using namespace std;
 using namespace urbi;
 
 UKinectDepth::UKinectDepth(const std::string& name) : UKinectModule(name) {
+    cerr << "[UKinectDepth] loaded" << endl;
     UBindFunction(UKinectDepth, init);
 }
 

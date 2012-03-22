@@ -299,7 +299,7 @@ void UKinectUser::getData(int mode) {
     }
 }
 
-std::vector<float> UKinectUser::setVectorPosition(unsigned int user, unsigned int jointNumber, XnSkeletonJoint eJoint) {
+std::vector<float> UKinectUser::setVectorPosition(unsigned int user, unsigned int jointNumber) {
     std::vector<float> position;
     XnSkeletonJointPosition joint;
     userGenerator.GetSkeletonCap().GetSkeletonJointPosition(aUsers[user], XN_SKEL_HEAD, joint);
