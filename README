@@ -68,10 +68,11 @@ Cam.getData(1); Dep.getData(0); Usr.getData(0);
 
 urbi -i -m UKinectOpenNI -P 54000
 
-var Global.Kinect=UKinectOpenNI.new(true,true,true);
 var Global.xyz;
-    Kinect.refreshData();
-    Kinect.getUsers();
+var Global.Kinect=UKinectOpenNI.new(true,true,true);
+Kinect.refreshData();
+Kinect.getUsers();
+Kinect.getImage();
 t:loop{
     Kinect.refreshData();
     Kinect.getUsers();
@@ -99,3 +100,28 @@ t:while (Kinect.numUsers==0)
     Kinect.getUsers();
     sleep(0.01s);
 },
+
+var Global.Kinect=UKinectOpenNI.new(true,true,true);
+t:loop{
+    Kinect.refreshData();
+    Kinect.getImage();
+    Kinect.getDepth();
+    Kinect.getUsers();
+    Kinect.getSkeleton(Kinect.image);
+    sleep(0.1s);
+},
+
+t:loop{
+    Kinect.refreshData();
+    Kinect.getImage();
+    Kinect.getDepth();
+    Kinect.getUsers();
+    Kinect.getSkeleton(Kinect.depth);
+    sleep(0.1s);
+},
+
+Kinect.refreshData();
+Kinect.getUsers();
+Kinect.getImage();
+Kinect.getSkeleton(Kinect.image);
+Kinect.skeleton;

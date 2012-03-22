@@ -26,18 +26,23 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationStart(xn::SkeletonCapability& c
 void XN_CALLBACK_TYPE UserCalibration_CalibrationComplete(xn::SkeletonCapability& capability, XnUserID nId, XnCalibrationStatus eStatus, void* pCookie);
 
 UKinectOpenNI::UKinectOpenNI(const std::string& name) : UObject(name) {
-    cerr << "[UKinectOpenNI] loaded" << endl;
+    cerr << "[UKinectOpenNI] constructor" << endl;
     UBindFunction(UKinectOpenNI, init);
 }
 
 UKinectOpenNI::~UKinectOpenNI() {
+    cerr << "[UKinectOpenNI] destructor - 0" << endl;
     if (imageActive)
         deactivateImage();
+    cerr << "[UKinectOpenNI] destructor - 1" << endl;
     if (depthActive)
         deactivateDepth();
+    cerr << "[UKinectOpenNI] destructor - 2" << endl;
     if (usersActive)
         deactivateUsers();
+    cerr << "[UKinectOpenNI] destructor - 3" << endl;
     context.Release();
+    cerr << "[UKinectOpenNI] destructor - END" << endl;
 }
 
 int UKinectOpenNI::update() {
@@ -67,6 +72,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindVar(UKinectOpenNI, depthWidth);
     UBindVar(UKinectOpenNI, depthHeight);
     UBindVar(UKinectOpenNI, numUsers);
+    UBindVar(UKinectOpenNI, skeleton);
     UBindVar(UKinectOpenNI, fps);
     UBindVar(UKinectOpenNI, notify);
 
@@ -79,7 +85,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindFunction(UKinectOpenNI, getJointPosition);
     UBindFunction(UKinectOpenNI, getDepthXY);
     UBindFunction(UKinectOpenNI, getDepthMedianFromArea);
-    
+
     UBindFunction(UKinectOpenNI, getSkeleton);
 
     // Notify if fps changed
@@ -134,6 +140,8 @@ void UKinectOpenNI::activateImage() {
 
 void UKinectOpenNI::deactivateImage() {
     imageActive = false;
+    delete[] mBinImage.image.data;
+    mBinImage.image.data = NULL;
     imageGenerator.Release();
 }
 
@@ -168,6 +176,8 @@ void UKinectOpenNI::activateDepth() {
 
 void UKinectOpenNI::deactivateDepth() {
     depthActive = false;
+    delete[] mBinDepth.image.data;
+    mBinDepth.image.data = NULL;
     depthGenerator.Release();
 }
 
@@ -208,6 +218,8 @@ void UKinectOpenNI::activateUsers() {
 
 void UKinectOpenNI::deactivateUsers() {
     usersActive = false;
+    delete[] mBinSkeleton.image.data;
+    mBinSkeleton.image.data = NULL;
     userGenerator.Release();
 }
 
@@ -378,17 +390,86 @@ void UKinectOpenNI::fpsChanged() {
     USetUpdate(fps.as<int>() > 0 ? 1000.0 / fps.as<int>() : -1.0);
 }
 
+void UKinectOpenNI::DrawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJoint eJoint1, XnSkeletonJoint eJoint2) {
+    if (!depthActive) {
+        printf("[UKinectOpenNI] depth required!\n");
+        return;
+    }
+
+    if (!userGenerator.GetSkeletonCap().IsTracking(player)) {
+        return;
+    }
+
+    XnSkeletonJointPosition joint1, joint2;
+    userGenerator.GetSkeletonCap().GetSkeletonJointPosition(player, eJoint1, joint1);
+    userGenerator.GetSkeletonCap().GetSkeletonJointPosition(player, eJoint2, joint2);
+
+    if (joint1.fConfidence < 0.5 || joint2.fConfidence < 0.5) {
+        return;
+    }
+
+    XnPoint3D pt[2];
+    pt[0] = joint1.position;
+    pt[1] = joint2.position;
+
+    depthGenerator.ConvertRealWorldToProjective(2, pt, pt);
+    line(processImage, cv::Point(pt[0].X, pt[0].Y),
+            cv::Point(pt[1].X, pt[1].Y), cv::Scalar(255, 0, 0), 2);
+}
+
 void UKinectOpenNI::getSkeleton(UImage src) {
-    cv::Mat processImage(cv::Size(src.width, src.height), CV_8UC3, src.data);
+    if (!depthActive) {
+        printf("[UKinectOpenNI] depth required!\n");
+        return;
+    }
+    delete[] mBinSkeleton.image.data;
+    mBinSkeleton.image.data = NULL;
     
-    cv::cvtColor(skeletonImage, processImage, CV_RGB2GRAY);
-    cv::circle(skeletonImage, cv::Point(100,100), 10, cv::Scalar(255,0,0), 3, 8, 0);
+    int format;
+    if (src.imageFormat == IMAGE_RGB)
+        format = CV_8UC3;
+    else if (src.imageFormat == IMAGE_GREY8)
+        format = CV_8UC1;
+    else
+        skeleton = src;
+    cv::Mat processImage(cv::Size(src.width, src.height), format, src.data);    
+
+    for (int i = 0; i < nUsers; ++i) {
+        if (!userGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
+            continue;
+        }
+        DrawLimb(processImage, aUsers[i], XN_SKEL_HEAD, XN_SKEL_NECK);
+
+        DrawLimb(processImage, aUsers[i], XN_SKEL_NECK, XN_SKEL_LEFT_SHOULDER);
+        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_SHOULDER, XN_SKEL_LEFT_ELBOW);
+        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_ELBOW, XN_SKEL_LEFT_HAND);
+
+        DrawLimb(processImage, aUsers[i], XN_SKEL_NECK, XN_SKEL_RIGHT_SHOULDER);
+        DrawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_SHOULDER, XN_SKEL_RIGHT_ELBOW);
+        DrawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_ELBOW, XN_SKEL_RIGHT_HAND);
+
+        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_SHOULDER, XN_SKEL_TORSO);
+        DrawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_SHOULDER, XN_SKEL_TORSO);
+
+        DrawLimb(processImage, aUsers[i], XN_SKEL_TORSO, XN_SKEL_LEFT_HIP);
+        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_HIP, XN_SKEL_LEFT_KNEE);
+        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_KNEE, XN_SKEL_LEFT_FOOT);
+
+        DrawLimb(processImage, aUsers[i], XN_SKEL_TORSO, XN_SKEL_RIGHT_HIP);
+        DrawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_HIP, XN_SKEL_RIGHT_KNEE);
+        DrawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_KNEE, XN_SKEL_RIGHT_FOOT);
+
+        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_HIP, XN_SKEL_RIGHT_HIP);
+    }
     
-    mBinSkeleton.image.width = skeletonImage.cols;
-    mBinSkeleton.image.height = skeletonImage.rows;
-    mBinSkeleton.image.size = skeletonImage.cols * skeletonImage.rows * 3;
-    mBinSkeleton.image.data = skeletonImage.data;
-    image = mBinImage;
+    mBinSkeleton.type = BINARY_IMAGE;
+    mBinSkeleton.image.width = processImage.cols;
+    mBinSkeleton.image.height = processImage.rows;
+    mBinSkeleton.image.size = src.size;
+    mBinSkeleton.image.data = new uint8_t[mBinSkeleton.image.size];
+    mempcpy(mBinSkeleton.image.data, processImage.data, mBinSkeleton.image.size);
+    mBinSkeleton.image.imageFormat = src.imageFormat;
+    skeleton = mBinSkeleton;
 }
 
 /*

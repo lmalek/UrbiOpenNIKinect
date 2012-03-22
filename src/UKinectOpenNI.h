@@ -1,4 +1,4 @@
-/* 
+;/* 
  * File:   UKinectOpenNI.h
  * Author: lmalek
  *
@@ -101,10 +101,10 @@ private:
     urbi::UBinary mBinSkeleton; // Storage for last captured image.
     XnUInt16 nUsers;
     XnUserID aUsers[MAX_NUM_USERS];
-    cv::Mat skeletonImage;
 
     // user component functions
     std::vector<float> setVectorPosition(unsigned int user, XnSkeletonJoint eJoint);
+    void DrawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJoint eJoint1, XnSkeletonJoint eJoint2);
 };
 
 #endif	/* UKINECTOPENNI_H */
