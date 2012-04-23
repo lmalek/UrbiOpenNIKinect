@@ -31,6 +31,14 @@ REQUIREMENTS
    [OpenNI-DIR]/Samples/Bin/[...]/NIViewer 
    
 
+ALTERNATIVE
+
+Instead of manually building OpenNI on Ubintu one can instal it from pepository
+https://launchpad.net/~admo/+archive/openni by typing
+
+sudo apt-add-apt-repository ppa:admo/openni
+
+
 
 --------------------------------------------------------------------------------
 INSTALATION
@@ -57,16 +65,6 @@ NOTES
 
 Example of usage:
 
-urbi -i --module=UKinectOpenNI -P 54000
-urbi -i --module=libUKinectDepth --module=libUKinectCamera --module=libUKinectUser -P 54000
-
-var Global.Cam=UKinectCamera.new();
-var Global.Dep=UKinectDepth.new();
-var Global.Usr=UKinectUser.new();
-
-Cam.getData(1); Dep.getData(0); Usr.getData(0);
-
-
 urbi -i -m UKinectOpenNI -P 54000
 
 var Global.xyz;
@@ -82,24 +80,7 @@ t:loop{
         xyz = Kinect.getJointPosition(1,3);
         echo("x="+xyz[0]+" y="+xyz[1]+" z="+xyz[2]);
     };
-    sleep(0.1s);
-},
-
-t:loop{
-    Kinect.refreshData();
-    Kinect.getUsers();
-    if (Kinect.numUsers > 0) {
-        echo(Kinect.numUsers);
-        echo(Kinect.getJointPosition(1,3));
-    };
-    sleep(0.1s);
-},
-
-t:while (Kinect.numUsers==0)
-{   
-    Kinect.refreshData();
-    Kinect.getUsers();
-    sleep(0.01s);
+    sleep(0.03s);
 },
 
 var Global.Kinect=UKinectOpenNI.new(true,true,true);
@@ -109,7 +90,7 @@ t:loop{
     Kinect.getDepth();
     Kinect.getUsers();
     Kinect.getSkeleton(Kinect.image);
-    sleep(0.1s);
+    sleep(0.03s);
 },
 
 t:loop{
@@ -118,15 +99,8 @@ t:loop{
     Kinect.getDepth();
     Kinect.getUsers();
     Kinect.getSkeleton(Kinect.depth);
-    sleep(0.1s);
+    sleep(0.03s);
 },
-
-Kinect.refreshData();
-Kinect.getUsers();
-Kinect.getImage();
-Kinect.getSkeleton(Kinect.image);
-Kinect.skeleton;
-
 
 t:loop{
     Kinect.refreshData();
@@ -134,10 +108,10 @@ t:loop{
     Kinect.getDepth();
     Kinect.getUsers();
     Kinect.getSkeleton(Kinect.depth);
-    sleep(0.01s);
+    sleep(0.03s);
 },
 
----------------------WORKING------------------
+
 var Global.Kinect=UKinectOpenNI.new(true,true,true);
 Kinect.matchDepthToImage(true);
 
@@ -147,5 +121,5 @@ t:loop{
     Kinect.getDepth();
     Kinect.getUsers();
     Kinect.getSkeleton(Kinect.image);
-    sleep(0.01s);
+    sleep(0.03s);
 },

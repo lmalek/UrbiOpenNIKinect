@@ -13,9 +13,9 @@
 # Find MOCKUP - FIX A.S.A.P. #
 # ========================== #
 
-FIND_PATH(OpenNI_INCLUDE_DIRS XnOpenNI.h /usr/include /usr/local/include ~/Pulpit/OpenNI/OpenNI-Bin-Dev-Linux-x64-v1.5.2.23/Include)
+FIND_PATH(OpenNI_INCLUDE_DIRS XnOpenNI.h /usr/include/ /usr/include/ni /usr/local/include/ /usr/local/include/ni)
 
-FIND_PATH(OpenNI_LIBRARY_DIRS libOpenNI.so  /usr/include /usr/local/include ~/Pulpit/OpenNI/OpenNI-Bin-Dev-Linux-x64-v1.5.2.23/Lib)
+FIND_PATH(OpenNI_LIBRARY_DIRS libOpenNI.so  /usr/lib /usr/local/lib)
 
 FIND_LIBRARY(OpenNI_LIBRARIES NAMES OpenNI PATH ${OpenNI_LIBRARY_DIRS})
 set(OpenNI_FOUND TRUE)
