@@ -21,81 +21,198 @@ public:
     UKinectOpenNI(const std::string& name);
     virtual ~UKinectOpenNI();
 
+    /**
+     * Change the update data flag.
+     * @return Return 0
+     */
     virtual int update();
 
+    /** 
+     * Initialization function
+     * Responsible for initalization of OpenNI camponents. Available in URBI
+     * 
+     * @param image Activate OpenNI component allowing to geather image from
+     *              Kinect
+     * @param depth Activate OpenNI component allowing to geather depth map
+     *              from Kinect
+     * @param user  Activete OpenNI component allwoing to recognize user
+     *              skeleton
+     */
     void init(bool image, bool depth, bool user);
 
+    /** 
+     * Activating image component.  
+     * Not available in URBI
+     */
     void activateImage();
+    
+    /**
+     * Dectivate image component. 
+     * Not available in URBI
+     */
     void deactivateImage();
 
+    /** 
+     * Activating depth map component.
+     * Not available in URBI
+     */
     void activateDepth();
+    
+    /** 
+     * Deactivating dempth map component.
+     * Not available in URBI
+     */
     void deactivateDepth();
 
+    /** 
+     * Activating user skeleton component.
+     * Not available in URBI
+     */
     void activateUsers();
+    
+    /**  
+     * Deactivating user skeleton component.
+     * Not available in URBI
+     */
     void deactivateUsers();
 
-    urbi::UVar image;
-    urbi::UVar imageWidth;
-    urbi::UVar imageHeight;
+    
+    urbi::UVar image;           /**< Image from Kinect camera */      
+    urbi::UVar imageWidth;      /**< Image width from Kinect camera */  
+    urbi::UVar imageHeight;     /**< Image height from Kinect camera */  
 
-    urbi::UVar depth;
-    urbi::UVar depthWidth;
-    urbi::UVar depthHeight;
+    urbi::UVar depth;           /**< Depth map from Kinect camera */
+    urbi::UVar depthWidth;      /**< Depth map width from Kinect camera */
+    urbi::UVar depthHeight;     /**< Depth map height from Kinect camera */
 
-    urbi::UVar skeleton;
-    urbi::UVar skeletonWidth;
-    urbi::UVar skeletonHeight;
-    urbi::UVar numUsers;
+    urbi::UVar skeleton;        /**< Skeletons image from Kinect camera */
+    urbi::UVar skeletonWidth;   /**< Skeletons image width from Kinect camera */
+    urbi::UVar skeletonHeight;  /**< Skeletons image height from Kinect camera */
+    urbi::UVar numUsers;        /**< Number of users detected */
 
-    urbi::UVar fps;
-    urbi::UVar notify;
+    urbi::UVar fps;             /**< Number of FPS */
+    urbi::UVar notify;          /**< Notify flag*/
 
+    // image component functions -----------------------------------------------
+    
+    /**
+     * Refresh all data from Kinect.
+     * Update the data from kinect to all activated functionalities.
+     */
     void refreshData();
 
-    // image component functions
+    /**
+     * If available update the image for URBI.
+     */
     void getImage();
+    
+    /**
+     * Change the notivy behaviour on image URBI object.
+     * @param var Boolean value. True to enable notify. False to disable.
+     */
     void changeNotifyImage(urbi::UVar & var);
 
-    // depth component functions
+    // depth component functions -----------------------------------------------
+    
+    /**
+     * If available update the depth map for URBI.
+     */
     void getDepth();
+    
+    /**
+     * Change the notivy behaviour on depth map  URBI object.
+     * @param var Boolean value. True to enable notify. False to disable.
+     */
     void changeNotifyDepth(urbi::UVar & var);
+    
+    /**
+     * Get pixel value from depth map.
+     * @param x Coordinate of horizontal pixel posion on depth map
+     * @param y Coordinate of vertical pixel posion on depth map
+     */
     unsigned int getDepthXY(unsigned int x, unsigned int y);
+    
+    /**
+     * Get median depth value from rectangle area.
+     * @param x1 Coordinate of upper left pixel horizontal posion on depth map
+     * @param y1 Coordinate of upper left pixel vertical posion on depth map
+     * @param x2 Coordinate of lower right pixel horizontal posion on depth map
+     * @param y2 Coordinate of lower right pixel vertical posion on depth map
+     */
     unsigned int getDepthMedianFromArea(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2);
+    
+    /**
+     * Fix calibration depth and image.
+     * @param state If true depth map and image are calibrated.
+     */
+    void matchDepthToImage(bool state);
 
-    // users component functions
+    // users component functions -----------------------------------------------
+    
+    /**
+     * If available update users posture for URBI.
+     */ 
     void getUsers();
+    
+    /**
+     * Get skeletons and place them on given image.
+     * @param src Image on whitch the skeletons should be painted.
+     */
     void getSkeleton(urbi::UImage src);
+    
+    /**
+     * Change the notivy behaviour on user skeletons URBI object.
+     * @param var Boolean value. True to enable notify. False to disable.
+     */    
     void changeNotifyUsers(urbi::UVar & var);
+    
+    /**
+     * Check if user posture of a given number is being tracked
+     * @param nr User number
+     * @return Return the true if user is tracked. Otherwise false.
+     */
     bool isUserTracked(unsigned int nr);
+    
+    /**
+     * Get the (X,Y,Z) position of the given body joint for given user
+     * @param user User number
+     * @param jointNumber Joint code/number @see <a href="http://openni.org/Documentation/Reference/_xn_types_8h_ac025301dbcbd9a91e532fa3d8991361d.html#ac025301dbcbd9a91e532fa3d8991361d">XnSkeletonJoint</a>
+     * @return Return a 3 element vector with joint coordinate (X,Y,Z)
+     */
     std::vector<float> getJointPosition(unsigned int user, unsigned int jointNumber); 
+    
+    /**
+     * Get the (X,Y) coordinate on image of the given body joint for given user
+     * @param user User number
+     * @param jointNumber Joint code/number @see <a href="http://openni.org/Documentation/Reference/_xn_types_8h_ac025301dbcbd9a91e532fa3d8991361d.html#ac025301dbcbd9a91e532fa3d8991361d">XnSkeletonJoint</a>
+     * @return Return a 3 element vector with joint coordinate (X,Y,Z)
+     */
+    std::vector<int> getJointImageCoordinate(unsigned int user, unsigned int jointNumber); 
    
 private:
 
-
-    bool mGetNewData; //
-    unsigned int mData; // ID of already grabed frame
-    unsigned int mAccessData; // ID of already retrieved frame  
+    bool mGetNewData;           /**< Flag that new data was should be obtained */
 
     // Mutex and conditional variable to synchronize threads
     boost::mutex getValMutex;
 
     void fpsChanged();
 
-    xn::Context context;
+    xn::Context context;        /**< OpenNI context for connection with Kinect */
 
-    // image component variables
+    // image component variables -----------------------------------------------
     bool imageActive;
     xn::ImageGenerator imageGenerator;
     xn::ImageMetaData imageMD;
     urbi::UBinary mBinImage; // Storage for last captured image.
 
-    // depth component variables
+    // depth component variables -----------------------------------------------
     bool depthActive;
     xn::DepthGenerator depthGenerator;
     xn::DepthMetaData depthMD;
     urbi::UBinary mBinDepth; // Storage for last captured image.
 
-    // users component variables
+    // users component variables -----------------------------------------------
     bool usersActive;
     xn::UserGenerator userGenerator;
     urbi::UBinary mBinSkeleton; // Storage for last captured image.
@@ -103,8 +220,8 @@ private:
     XnUserID aUsers[MAX_NUM_USERS];
 
     // user component functions
-    std::vector<float> setVectorPosition(unsigned int user, XnSkeletonJoint eJoint);
     void DrawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJoint eJoint1, XnSkeletonJoint eJoint2);
+    XnSkeletonJoint jointNumberToSkeleton(unsigned int jointNumber);
 };
 
 #endif	/* UKINECTOPENNI_H */

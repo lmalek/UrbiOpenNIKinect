@@ -26,23 +26,19 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationStart(xn::SkeletonCapability& c
 void XN_CALLBACK_TYPE UserCalibration_CalibrationComplete(xn::SkeletonCapability& capability, XnUserID nId, XnCalibrationStatus eStatus, void* pCookie);
 
 UKinectOpenNI::UKinectOpenNI(const std::string& name) : UObject(name) {
-    cerr << "[UKinectOpenNI] constructor" << endl;
+    cerr << "[UKinectOpenNI]::UKinectOpenNI()" << endl;
     UBindFunction(UKinectOpenNI, init);
 }
 
 UKinectOpenNI::~UKinectOpenNI() {
-    cerr << "[UKinectOpenNI] destructor - 0" << endl;
+    cerr << "[UKinectOpenNI]::~UKinectOpenNI()" << endl;
     if (imageActive)
         deactivateImage();
-    cerr << "[UKinectOpenNI] destructor - 1" << endl;
     if (depthActive)
         deactivateDepth();
-    cerr << "[UKinectOpenNI] destructor - 2" << endl;
     if (usersActive)
         deactivateUsers();
-    cerr << "[UKinectOpenNI] destructor - 3" << endl;
     context.Release();
-    cerr << "[UKinectOpenNI] destructor - END" << endl;
 }
 
 int UKinectOpenNI::update() {
@@ -60,7 +56,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     nRetVal = context.Init();
     if (nRetVal != XN_STATUS_OK) { // failed to initializew
         std::stringstream ss;
-        ss << "[UKinectOpenNI] Failed to initialize kinect context: " << xnGetStatusString(nRetVal);
+        ss << "[UKinectOpenNI]::init() : Failed to initialize kinect context: " << xnGetStatusString(nRetVal);
         throw std::runtime_error(ss.str());
     }
 
@@ -85,6 +81,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindFunction(UKinectOpenNI, getJointPosition);
     UBindFunction(UKinectOpenNI, getDepthXY);
     UBindFunction(UKinectOpenNI, getDepthMedianFromArea);
+    UBindFunction(UKinectOpenNI, matchDepthToImage);
 
     UBindFunction(UKinectOpenNI, getSkeleton);
 
@@ -115,7 +112,7 @@ void UKinectOpenNI::activateImage() {
     // initialize generator
     nRetVal = imageGenerator.Create(context);
     if (nRetVal != XN_STATUS_OK)
-        throw runtime_error("[UKinectOpenNI] Failed to initialize image");
+        throw runtime_error("[UKinectOpenNI]::activateImage() : Failed to initialize image");
 
     //obtain image metadata
     imageGenerator.GetMetaData(imageMD);
@@ -124,7 +121,7 @@ void UKinectOpenNI::activateImage() {
     imageWidth = imageMD.FullXRes();
     imageHeight = imageMD.FullYRes();
 
-    cerr << "\t[UKinectOpenNI] Image size: x=" << imageWidth.as<int>() << " y=" << imageHeight.as<int>() << endl;
+    cerr << "\t[UKinectOpenNI]::activateImage() : Image size: x=" << imageWidth.as<int>() << " y=" << imageHeight.as<int>() << endl;
 
     mBinImage.type = BINARY_IMAGE;
     mBinImage.image.width = imageWidth.as<size_t > ();
@@ -151,7 +148,7 @@ void UKinectOpenNI::activateDepth() {
     // initialize generator
     nRetVal = depthGenerator.Create(context);
     if (nRetVal != XN_STATUS_OK)
-        throw runtime_error("[UKinectOpenNI] Failed to initialize depth");
+        throw runtime_error("[UKinectOpenNI]::activateDepth() : Failed to initialize depth");
 
     //obtain image metadata
     depthGenerator.GetMetaData(depthMD);
@@ -160,7 +157,7 @@ void UKinectOpenNI::activateDepth() {
     depthWidth = depthMD.FullXRes();
     depthHeight = depthMD.FullYRes();
 
-    cerr << "\t[UKinectOpenNI] Depth size: x=" << depthWidth.as<int>() << " y=" << depthHeight.as<int>() << endl;
+    cerr << "\t[UKinectOpenNI]::activateDepth() : Depth size: x=" << depthWidth.as<int>() << " y=" << depthHeight.as<int>() << endl;
 
     mBinDepth.type = BINARY_IMAGE;
     mBinDepth.image.width = depthWidth.as<size_t > ();
@@ -187,7 +184,7 @@ void UKinectOpenNI::activateUsers() {
     // initialize generator
     nRetVal = userGenerator.Create(context);
     if (nRetVal != XN_STATUS_OK)
-        throw runtime_error("[UKinectOpenNI] Failed to initialize user");
+        throw runtime_error("[UKinectOpenNI]::activateUsers() : Failed to initialize user");
 
 
     XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected;
@@ -232,7 +229,7 @@ void UKinectOpenNI::refreshData() {
         mGetNewData = false;
         nRetVal = context.WaitAndUpdateAll();
         if (nRetVal != XN_STATUS_OK) {
-            cerr << "[UKinectOpenNI]::getData() - contex.WaitAndUpdateAll error" << endl;
+            cerr << "[UKinectOpenNI]::refreshData() : contex.WaitAndUpdateAll error" << endl;
             return;
         }
     }
@@ -275,6 +272,19 @@ unsigned int UKinectOpenNI::getDepthMedianFromArea(unsigned int x1, unsigned int
     return area[middle];
 }
 
+void UKinectOpenNI::matchDepthToImage(bool state) {
+    if (!depthActive) return;
+    XnStatus nRetVal = XN_STATUS_OK;
+    if (state) {
+        nRetVal = depthGenerator.GetAlternativeViewPointCap().SetViewPoint(imageGenerator);
+        if(nRetVal)
+           cerr<< "Failed to match Depth and RGB points of view: " << xnGetStatusString(nRetVal) << endl;
+    }
+    else {
+        nRetVal = depthGenerator.GetAlternativeViewPointCap().ResetViewPoint();
+    }
+}
+
 void UKinectOpenNI::getUsers() {
     if (!usersActive) return;
     nUsers = MAX_NUM_USERS;
@@ -287,9 +297,25 @@ void UKinectOpenNI::getUsers() {
     numUsers = userCount;
 }
 
-std::vector<float> UKinectOpenNI::setVectorPosition(unsigned int user, XnSkeletonJoint eJoint) {
+std::vector<float> UKinectOpenNI::getJointPosition(unsigned int user, unsigned int jointNumber) {
     std::vector<float> position;
     XnSkeletonJointPosition joint;
+    XnSkeletonJoint eJoint;
+    if (user > numUsers.as<int>()) {
+        cerr << "[UKinectOpenNI]::getJointPosition() : - wrong user number" << endl;
+        return position;
+    }
+    // find user ID
+    if (userGenerator.GetSkeletonCap().IsTracking(user) == FALSE) {
+        cerr << "[UKinectOpenNI]::getJointPosition() : user not tracked" << endl;
+        return position;
+    }
+    try {
+        eJoint = jointNumberToSkeleton(jointNumber);
+    }
+    catch (std::range_error) {
+        return position;
+    }
     userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, eJoint, joint);
     position.push_back(joint.position.X);
     position.push_back(joint.position.Y);
@@ -297,70 +323,36 @@ std::vector<float> UKinectOpenNI::setVectorPosition(unsigned int user, XnSkeleto
     return position;
 }
 
-std::vector<float> UKinectOpenNI::getJointPosition(unsigned int user, unsigned int jointNumber) {
-    std::vector<float> position;
+std::vector<int> UKinectOpenNI::getJointImageCoordinate(unsigned int user, unsigned int jointNumber) {
+    XnSkeletonJointPosition joint;
+    XnSkeletonJoint eJoint;
+    std::vector<int> coordinate;
     if (user > numUsers.as<int>()) {
-        cerr << "[UKinectOpenNI] - wrong user number" << endl;
-        return position;
+        cerr << "[UKinectOpenNI]::getJointPosition() : - wrong user number" << endl;
+        return coordinate;
     }
     // find user ID
     if (userGenerator.GetSkeletonCap().IsTracking(user) == FALSE) {
-        cerr << "[UKinectOpenNI] - user not tracked" << endl;
-        return position;
+        cerr << "[UKinectOpenNI]::getJointPosition() : user not tracked" << endl;
+        return coordinate;
     }
+    try {
+        eJoint = jointNumberToSkeleton(jointNumber);
+    }
+    catch (std::range_error) {
+        return coordinate;
+    }
+    userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, eJoint, joint);
+    XnPoint3D pt = joint.position;
+    coordinate.push_back(pt.X);
+    coordinate.push_back(pt.Y);
+    return coordinate;
+}
+
+XnSkeletonJoint UKinectOpenNI::jointNumberToSkeleton(unsigned int jointNumber) {
     if (jointNumber > 24)
-        return position;
-    switch (jointNumber) {
-        case 1:
-            return setVectorPosition(user, XN_SKEL_HEAD);
-        case 2:
-            return setVectorPosition(user, XN_SKEL_NECK);
-        case 3:
-            return setVectorPosition(user, XN_SKEL_TORSO);
-        case 4:
-            return setVectorPosition(user, XN_SKEL_WAIST);
-        case 5:
-            return setVectorPosition(user, XN_SKEL_LEFT_COLLAR);
-        case 6:
-            return setVectorPosition(user, XN_SKEL_LEFT_SHOULDER);
-        case 7:
-            return setVectorPosition(user, XN_SKEL_LEFT_ELBOW);
-        case 8:
-            return setVectorPosition(user, XN_SKEL_LEFT_WRIST);
-        case 9:
-            return setVectorPosition(user, XN_SKEL_LEFT_HAND);
-        case 10:
-            return setVectorPosition(user, XN_SKEL_LEFT_FINGERTIP);
-        case 11:
-            return setVectorPosition(user, XN_SKEL_RIGHT_COLLAR);
-        case 12:
-            return setVectorPosition(user, XN_SKEL_RIGHT_SHOULDER);
-        case 13:
-            return setVectorPosition(user, XN_SKEL_RIGHT_ELBOW);
-        case 14:
-            return setVectorPosition(user, XN_SKEL_RIGHT_WRIST);
-        case 15:
-            return setVectorPosition(user, XN_SKEL_RIGHT_HAND);
-        case 16:
-            return setVectorPosition(user, XN_SKEL_RIGHT_FINGERTIP);
-        case 17:
-            return setVectorPosition(user, XN_SKEL_LEFT_HIP);
-        case 18:
-            return setVectorPosition(user, XN_SKEL_LEFT_KNEE);
-        case 19:
-            return setVectorPosition(user, XN_SKEL_LEFT_ANKLE);
-        case 20:
-            return setVectorPosition(user, XN_SKEL_LEFT_FOOT);
-        case 21:
-            return setVectorPosition(user, XN_SKEL_RIGHT_HIP);
-        case 22:
-            return setVectorPosition(user, XN_SKEL_RIGHT_KNEE);
-        case 23:
-            return setVectorPosition(user, XN_SKEL_RIGHT_ANKLE);
-        case 24:
-            return setVectorPosition(user, XN_SKEL_RIGHT_FOOT);
-    }
-    return position;
+        throw new std::range_error("Exeption joint out of range");
+    return static_cast<XnSkeletonJoint>(jointNumber);
 }
 
 void UKinectOpenNI::changeNotifyImage(UVar & var) {
@@ -392,7 +384,7 @@ void UKinectOpenNI::fpsChanged() {
 
 void UKinectOpenNI::DrawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJoint eJoint1, XnSkeletonJoint eJoint2) {
     if (!depthActive) {
-        printf("[UKinectOpenNI] depth required!\n");
+        printf("[UKinectOpenNI]::DrawLimb() : depth required!\n");
         return;
     }
 
@@ -419,7 +411,7 @@ void UKinectOpenNI::DrawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJ
 
 void UKinectOpenNI::getSkeleton(UImage src) {
     if (!depthActive) {
-        printf("[UKinectOpenNI] depth required!\n");
+        printf("[UKinectOpenNI]::getSkeleton() depth required!\n");
         return;
     }
     delete[] mBinSkeleton.image.data;

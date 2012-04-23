@@ -57,6 +57,7 @@ NOTES
 
 Example of usage:
 
+urbi -i --module=UKinectOpenNI -P 54000
 urbi -i --module=libUKinectDepth --module=libUKinectCamera --module=libUKinectUser -P 54000
 
 var Global.Cam=UKinectCamera.new();
@@ -125,3 +126,26 @@ Kinect.getUsers();
 Kinect.getImage();
 Kinect.getSkeleton(Kinect.image);
 Kinect.skeleton;
+
+
+t:loop{
+    Kinect.refreshData();
+    Kinect.getImage();
+    Kinect.getDepth();
+    Kinect.getUsers();
+    Kinect.getSkeleton(Kinect.depth);
+    sleep(0.01s);
+},
+
+---------------------WORKING------------------
+var Global.Kinect=UKinectOpenNI.new(true,true,true);
+Kinect.matchDepthToImage(true);
+
+t:loop{
+    Kinect.refreshData();
+    Kinect.getImage();
+    Kinect.getDepth();
+    Kinect.getUsers();
+    Kinect.getSkeleton(Kinect.image);
+    sleep(0.01s);
+},
