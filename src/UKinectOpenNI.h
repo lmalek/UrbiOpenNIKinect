@@ -186,7 +186,7 @@ public:
      * Allow to obtain the list of tracked user ID list
      * @return Return vector of user ID list.
      */
-    std::vector<int> getUsersIDList();
+    std::vector<int> getUsersID();
     
     /**
      * Check if user posture of a given number is being tracked

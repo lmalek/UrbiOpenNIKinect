@@ -98,7 +98,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindFunction(UKinectOpenNI, getDepthXY);
     UBindFunction(UKinectOpenNI, getDepthMedianFromArea);
     UBindFunction(UKinectOpenNI, matchDepthToImage);
-    UBindFunction(UKinectOpenNI, getUsersIDList);
+    UBindFunction(UKinectOpenNI, getUsersID);
 
     UBindThreadedFunction(UKinectOpenNI, getSkeleton, LOCK_INSTANCE);
 
@@ -366,7 +366,7 @@ std::vector<int> UKinectOpenNI::getJointImageCoordinate(unsigned int user, unsig
     return coordinate;
 }
 
-std::vector<int> UKinectOpenNI::getUsersIDList() {
+std::vector<int> UKinectOpenNI::getUsersID() {
     std::vector<int> usersID;
     for (XnUInt16 i = 0; i < nUsers; i++) {
         if (userGenerator.GetSkeletonCap().IsTracking(aUsers[i]))
