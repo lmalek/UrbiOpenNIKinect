@@ -34,7 +34,7 @@
 #  include <cv.h>
 #endif
 
-
+#include "KinectMotors.h"
 
 #define MAX_NUM_USERS 10
 
@@ -116,6 +116,14 @@ public:
     urbi::UVar fps;             /**< Number of FPS */
     urbi::UVar notify;          /**< Notify flag*/
 
+    /**
+     * Set the Kinect head to given angle
+     * 
+     * @param angle Absolut angle value from the ground level in degrees
+     * @return Return true on succes and false on failure.
+     */
+    bool motorMove(int angle);
+    
     // image component functions -----------------------------------------------
     
     /**
@@ -226,6 +234,8 @@ private:
     boost::mutex getValMutex;
 
     void fpsChanged();
+    
+    KinectMotors motors;        /**< Direct kinect motor acces */
 
     xn::Context context;        /**< OpenNI context for connection with Kinect */
 

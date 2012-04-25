@@ -54,6 +54,7 @@ UKinectOpenNI::~UKinectOpenNI() {
         deactivateDepth();
     if (usersActive)
         deactivateUsers();
+    motors.Close();
     context.Release();
 }
 
@@ -90,6 +91,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindVar(UKinectOpenNI, notify);
 
     // Bind all functions
+    UBindFunction(UKinectOpenNI, motorMove);
     UBindThreadedFunction(UKinectOpenNI, refreshData, LOCK_INSTANCE);
     UBindFunction(UKinectOpenNI, getImage);
     UBindFunction(UKinectOpenNI, getDepth);
@@ -120,6 +122,8 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     if (userFlag)
         activateUsers();
 
+    motors.Open();      // open direct acces to motors
+    
     // Set update period 30
     fps = 30;
     context.StartGeneratingAll();
@@ -254,6 +258,10 @@ void UKinectOpenNI::refreshData() {
             return;
         }
     }
+}
+
+bool UKinectOpenNI::motorMove(int angle) {
+    motors.Move(angle);
 }
 
 void UKinectOpenNI::getImage() {

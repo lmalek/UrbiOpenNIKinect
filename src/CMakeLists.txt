@@ -12,9 +12,9 @@ find_package (OpenNI REQUIRED)
 
 include_directories (${URBI_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${OpenNI_INCLUDE_DIRS})
 
-add_library (UKinectOpenNI MODULE UKinectOpenNI.cpp)
+add_library (UKinectOpenNI MODULE UKinectOpenNI.cpp KinectMotors.cpp)
 
-target_link_libraries (UKinectOpenNI  ${URBI_LIBRARIES} ${OpenCV_CV_LIBRARY} ${OpenNI_LIBRARIES})
+target_link_libraries (UKinectOpenNI ${URBI_LIBRARIES} ${OpenCV_CV_LIBRARY} ${OpenNI_LIBRARIES})
 
 set_target_properties (UKinectOpenNI PROPERTIES
   VERSION 0.0.1
