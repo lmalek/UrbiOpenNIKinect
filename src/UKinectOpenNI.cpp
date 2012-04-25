@@ -98,6 +98,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindFunction(UKinectOpenNI, getDepthXY);
     UBindFunction(UKinectOpenNI, getDepthMedianFromArea);
     UBindFunction(UKinectOpenNI, matchDepthToImage);
+    UBindFunction(UKinectOpenNI, getUsersIDList);
 
     UBindThreadedFunction(UKinectOpenNI, getSkeleton, LOCK_INSTANCE);
 
