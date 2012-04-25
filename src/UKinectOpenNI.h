@@ -105,6 +105,7 @@ public:
     urbi::UVar skeletonWidth;   /**< Skeletons image width from Kinect camera */
     urbi::UVar skeletonHeight;  /**< Skeletons image height from Kinect camera */
     urbi::UVar numUsers;        /**< Number of users detected */
+    urbi::UVar jointConfidence; /**< Confidence level for joints detection */
 
     urbi::UVar fps;             /**< Number of FPS */
     urbi::UVar notify;          /**< Notify flag*/

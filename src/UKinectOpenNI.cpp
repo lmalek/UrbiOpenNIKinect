@@ -85,6 +85,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindVar(UKinectOpenNI, depthHeight);
     UBindVar(UKinectOpenNI, numUsers);
     UBindVar(UKinectOpenNI, skeleton);
+    UBindVar(UKinectOpenNI, jointConfidence);
     UBindVar(UKinectOpenNI, fps);
     UBindVar(UKinectOpenNI, notify);
 
@@ -95,6 +96,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindFunction(UKinectOpenNI, getUsers);
 
     UBindFunction(UKinectOpenNI, getJointPosition);
+    UBindFunction(UKinectOpenNI, getJointImageCoordinate);
     UBindFunction(UKinectOpenNI, getDepthXY);
     UBindFunction(UKinectOpenNI, getDepthMedianFromArea);
     UBindFunction(UKinectOpenNI, matchDepthToImage);
@@ -225,6 +227,8 @@ void UKinectOpenNI::activateUsers() {
         userGenerator.GetSkeletonCap().GetCalibrationPose(g_strPose);
     }
 
+    jointConfidence = 0.5;
+    
     userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
 
     usersActive = true;
@@ -318,10 +322,6 @@ std::vector<float> UKinectOpenNI::getJointPosition(unsigned int user, unsigned i
     std::vector<float> position;
     XnSkeletonJointPosition joint;
     XnSkeletonJoint eJoint;
-    if (user > numUsers.as<int>()) {
-        cerr << "[UKinectOpenNI]::getJointPosition() : - wrong user number" << endl;
-        return position;
-    }
     // find user ID
     if (userGenerator.GetSkeletonCap().IsTracking(user) == FALSE) {
         cerr << "[UKinectOpenNI]::getJointPosition() : user not tracked" << endl;
@@ -334,6 +334,11 @@ std::vector<float> UKinectOpenNI::getJointPosition(unsigned int user, unsigned i
         return position;
     }
     userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, eJoint, joint);
+    
+    if (joint.fConfidence < jointConfidence.as<double>()) {
+        return position;
+    }
+    
     position.push_back(joint.position.X);
     position.push_back(joint.position.Y);
     position.push_back(joint.position.Z);
@@ -344,10 +349,6 @@ std::vector<int> UKinectOpenNI::getJointImageCoordinate(unsigned int user, unsig
     XnSkeletonJointPosition joint;
     XnSkeletonJoint eJoint;
     std::vector<int> coordinate;
-    if (user > numUsers.as<int>()) {
-        cerr << "[UKinectOpenNI]::getJointPosition() : - wrong user number" << endl;
-        return coordinate;
-    }
     // find user ID
     if (userGenerator.GetSkeletonCap().IsTracking(user) == FALSE) {
         cerr << "[UKinectOpenNI]::getJointPosition() : user not tracked" << endl;
@@ -360,9 +361,15 @@ std::vector<int> UKinectOpenNI::getJointImageCoordinate(unsigned int user, unsig
         return coordinate;
     }
     userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, eJoint, joint);
-    XnPoint3D pt = joint.position;
-    coordinate.push_back(pt.X);
-    coordinate.push_back(pt.Y);
+    
+    if (joint.fConfidence < jointConfidence.as<double>()) {
+        return coordinate;
+    }
+    
+    XnPoint3D pt[1] = {joint.position};
+    depthGenerator.ConvertRealWorldToProjective(1, pt, pt);
+    coordinate.push_back(pt[0].X);
+    coordinate.push_back(pt[0].Y);
     return coordinate;
 }
 
@@ -422,7 +429,8 @@ void UKinectOpenNI::DrawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJ
     userGenerator.GetSkeletonCap().GetSkeletonJointPosition(player, eJoint1, joint1);
     userGenerator.GetSkeletonCap().GetSkeletonJointPosition(player, eJoint2, joint2);
 
-    if (joint1.fConfidence < 0.5 || joint2.fConfidence < 0.5) {
+    if (joint1.fConfidence < jointConfidence.as<double>() || 
+            joint2.fConfidence < jointConfidence.as<double>()) {
         return;
     }
 
