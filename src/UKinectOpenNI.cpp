@@ -99,7 +99,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindFunction(UKinectOpenNI, getDepthMedianFromArea);
     UBindFunction(UKinectOpenNI, matchDepthToImage);
 
-    UBindFunction(UKinectOpenNI, getSkeleton);
+    UBindThreadedFunction(UKinectOpenNI, getSkeleton, LOCK_INSTANCE);
 
     // Notify if fps changed
     UNotifyChange(fps, &UKinectOpenNI::fpsChanged);
@@ -284,7 +284,7 @@ unsigned int UKinectOpenNI::getDepthMedianFromArea(unsigned int x1, unsigned int
         for (uint16_t y = y1; y <= y2; y++)
             area.push_back(depthMD(x, y));
     sort(area.begin(), area.begin());
-    middle = floor(area.size() / 2);
+    middle = floor(0.5*area.size());
     return area[middle];
 }
 
@@ -363,6 +363,15 @@ std::vector<int> UKinectOpenNI::getJointImageCoordinate(unsigned int user, unsig
     coordinate.push_back(pt.X);
     coordinate.push_back(pt.Y);
     return coordinate;
+}
+
+std::vector<int> UKinectOpenNI::getUsersIDList() {
+    std::vector<int> usersID;
+    for (XnUInt16 i = 0; i < nUsers; i++) {
+        if (userGenerator.GetSkeletonCap().IsTracking(aUsers[i]))
+            usersID.push_back(aUsers[i]);
+    }
+    return usersID;
 }
 
 XnSkeletonJoint UKinectOpenNI::jointNumberToSkeleton(unsigned int jointNumber) {
@@ -475,7 +484,7 @@ void UKinectOpenNI::getSkeleton(UImage src) {
     mBinSkeleton.image.height = processImage.rows;
     mBinSkeleton.image.size = src.size;
     mBinSkeleton.image.data = new uint8_t[mBinSkeleton.image.size];
-    mempcpy(mBinSkeleton.image.data, processImage.data, mBinSkeleton.image.size);
+    memcpy(mBinSkeleton.image.data, processImage.data, mBinSkeleton.image.size);
     mBinSkeleton.image.imageFormat = src.imageFormat;
     skeleton = mBinSkeleton;
 }

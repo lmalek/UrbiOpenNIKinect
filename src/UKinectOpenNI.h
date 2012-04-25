@@ -183,6 +183,12 @@ public:
     void changeNotifyUsers(urbi::UVar & var);
     
     /**
+     * Allow to obtain the list of tracked user ID list
+     * @return Return vector of user ID list.
+     */
+    std::vector<int> getUsersIDList();
+    
+    /**
      * Check if user posture of a given number is being tracked
      * @param nr User number
      * @return Return the true if user is tracked. Otherwise false.
