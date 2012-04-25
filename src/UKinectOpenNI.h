@@ -28,7 +28,13 @@
 #include <XnCppWrapper.h>
 #include <string>
 
-#include <cv.h>
+#ifdef _WIN32 // note the underscore: without it, it's not msdn official!
+#  include <opencv.hpp>
+#elif __unix__ // all unices
+#  include <cv.h>
+#endif
+
+
 
 #define MAX_NUM_USERS 10
 
