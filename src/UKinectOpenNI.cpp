@@ -88,7 +88,6 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindVar(UKinectOpenNI, skeleton);
     UBindVar(UKinectOpenNI, jointConfidence);
     UBindVar(UKinectOpenNI, fps);
-    UBindVar(UKinectOpenNI, notify);
 
     // Bind all functions
     UBindFunction(UKinectOpenNI, motorMove);
@@ -103,6 +102,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindFunction(UKinectOpenNI, getDepthMedianFromArea);
     UBindFunction(UKinectOpenNI, matchDepthToImage);
     UBindFunction(UKinectOpenNI, getUsersID);
+    UBindFunction(UKinectOpenNI, getVisibleUsersID);
 
     UBindThreadedFunction(UKinectOpenNI, getSkeleton, LOCK_INSTANCE);
 
@@ -122,8 +122,8 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     if (userFlag)
         activateUsers();
 
-    motors.Open();      // open direct acces to motors
-    
+    motors.Open(); // open direct acces to motors
+
     // Set update period 30
     fps = 30;
     context.StartGeneratingAll();
@@ -232,7 +232,7 @@ void UKinectOpenNI::activateUsers() {
     }
 
     jointConfidence = 0.5;
-    
+
     userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
 
     usersActive = true;
@@ -297,7 +297,7 @@ unsigned int UKinectOpenNI::getDepthMedianFromArea(unsigned int x1, unsigned int
         for (uint16_t y = y1; y <= y2; y++)
             area.push_back(depthMD(x, y));
     sort(area.begin(), area.begin());
-    middle = floor(0.5*area.size());
+    middle = floor(0.5 * area.size());
     return area[middle];
 }
 
@@ -306,10 +306,9 @@ void UKinectOpenNI::matchDepthToImage(bool state) {
     XnStatus nRetVal = XN_STATUS_OK;
     if (state) {
         nRetVal = depthGenerator.GetAlternativeViewPointCap().SetViewPoint(imageGenerator);
-        if(nRetVal)
-           cerr<< "Failed to match Depth and RGB points of view: " << xnGetStatusString(nRetVal) << endl;
-    }
-    else {
+        if (nRetVal)
+            cerr << "Failed to match Depth and RGB points of view: " << xnGetStatusString(nRetVal) << endl;
+    } else {
         nRetVal = depthGenerator.GetAlternativeViewPointCap().ResetViewPoint();
     }
 }
@@ -337,16 +336,15 @@ std::vector<float> UKinectOpenNI::getJointPosition(unsigned int user, unsigned i
     }
     try {
         eJoint = jointNumberToSkeleton(jointNumber);
-    }
-    catch (std::range_error) {
+    }    catch (std::range_error) {
         return position;
     }
     userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, eJoint, joint);
-    
+
     if (joint.fConfidence < jointConfidence.as<double>()) {
         return position;
     }
-    
+
     position.push_back(joint.position.X);
     position.push_back(joint.position.Y);
     position.push_back(joint.position.Z);
@@ -364,20 +362,21 @@ std::vector<int> UKinectOpenNI::getJointImageCoordinate(unsigned int user, unsig
     }
     try {
         eJoint = jointNumberToSkeleton(jointNumber);
-    }
-    catch (std::range_error) {
+    }    catch (std::range_error) {
         return coordinate;
     }
     userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, eJoint, joint);
-    
+
     if (joint.fConfidence < jointConfidence.as<double>()) {
         return coordinate;
     }
-    
+
     XnPoint3D pt[1] = {joint.position};
     depthGenerator.ConvertRealWorldToProjective(1, pt, pt);
-    coordinate.push_back(pt[0].X);
-    coordinate.push_back(pt[0].Y);
+    if (jointCoordinateInImageArea(pt[0])) {
+        coordinate.push_back(pt[0].X);
+        coordinate.push_back(pt[0].Y);
+    }
     return coordinate;
 }
 
@@ -390,10 +389,26 @@ std::vector<int> UKinectOpenNI::getUsersID() {
     return usersID;
 }
 
+std::vector<int> UKinectOpenNI::getVisibleUsersID() {
+    XnSkeletonJointPosition joint;
+    XnSkeletonJoint eJoint;
+    std::vector<int> usersID;
+    for (XnUInt16 i = 0; i < nUsers; i++) {
+        if (userGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
+            userGenerator.GetSkeletonCap().GetSkeletonJointPosition(aUsers[i], XN_SKEL_TORSO, joint);
+            XnPoint3D pt[1] = {joint.position};
+            depthGenerator.ConvertRealWorldToProjective(1, pt, pt);
+            if (jointCoordinateInImageArea(pt[0]))
+                usersID.push_back(aUsers[i]);
+        }
+    }
+    return usersID;
+}
+
 XnSkeletonJoint UKinectOpenNI::jointNumberToSkeleton(unsigned int jointNumber) {
     if (jointNumber > 24)
         throw new std::range_error("Exeption joint out of range");
-    return static_cast<XnSkeletonJoint>(jointNumber);
+    return static_cast<XnSkeletonJoint> (jointNumber);
 }
 
 void UKinectOpenNI::changeNotifyImage(UVar & var) {
@@ -423,7 +438,7 @@ void UKinectOpenNI::fpsChanged() {
     USetUpdate(fps.as<int>() > 0 ? 1000.0 / fps.as<int>() : -1.0);
 }
 
-void UKinectOpenNI::DrawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJoint eJoint1, XnSkeletonJoint eJoint2) {
+void UKinectOpenNI::drawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJoint eJoint1, XnSkeletonJoint eJoint2) {
     if (!depthActive) {
         printf("[UKinectOpenNI]::DrawLimb() : depth required!\n");
         return;
@@ -437,7 +452,7 @@ void UKinectOpenNI::DrawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJ
     userGenerator.GetSkeletonCap().GetSkeletonJointPosition(player, eJoint1, joint1);
     userGenerator.GetSkeletonCap().GetSkeletonJointPosition(player, eJoint2, joint2);
 
-    if (joint1.fConfidence < jointConfidence.as<double>() || 
+    if (joint1.fConfidence < jointConfidence.as<double>() ||
             joint2.fConfidence < jointConfidence.as<double>()) {
         return;
     }
@@ -445,10 +460,12 @@ void UKinectOpenNI::DrawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJ
     XnPoint3D pt[2];
     pt[0] = joint1.position;
     pt[1] = joint2.position;
-
     depthGenerator.ConvertRealWorldToProjective(2, pt, pt);
-    line(processImage, cv::Point(pt[0].X, pt[0].Y),
-            cv::Point(pt[1].X, pt[1].Y), cv::Scalar(255, 0, 0), 2);
+    
+    if (jointCoordinateInImageArea(pt[0]) && jointCoordinateInImageArea(pt[1])) {
+        line(processImage, cv::Point(pt[0].X, pt[0].Y),
+                cv::Point(pt[1].X, pt[1].Y), cv::Scalar(255, 0, 0), 2);
+    }
 }
 
 void UKinectOpenNI::getSkeleton(UImage src) {
@@ -458,7 +475,7 @@ void UKinectOpenNI::getSkeleton(UImage src) {
     }
     delete[] mBinSkeleton.image.data;
     mBinSkeleton.image.data = NULL;
-    
+
     int format;
     if (src.imageFormat == IMAGE_RGB)
         format = CV_8UC3;
@@ -466,36 +483,36 @@ void UKinectOpenNI::getSkeleton(UImage src) {
         format = CV_8UC1;
     else
         skeleton = src;
-    cv::Mat processImage(cv::Size(src.width, src.height), format, src.data);    
+    cv::Mat processImage(cv::Size(src.width, src.height), format, src.data);
 
     for (int i = 0; i < nUsers; ++i) {
         if (!userGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
             continue;
         }
-        DrawLimb(processImage, aUsers[i], XN_SKEL_HEAD, XN_SKEL_NECK);
+        drawLimb(processImage, aUsers[i], XN_SKEL_HEAD, XN_SKEL_NECK);
 
-        DrawLimb(processImage, aUsers[i], XN_SKEL_NECK, XN_SKEL_LEFT_SHOULDER);
-        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_SHOULDER, XN_SKEL_LEFT_ELBOW);
-        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_ELBOW, XN_SKEL_LEFT_HAND);
+        drawLimb(processImage, aUsers[i], XN_SKEL_NECK, XN_SKEL_LEFT_SHOULDER);
+        drawLimb(processImage, aUsers[i], XN_SKEL_LEFT_SHOULDER, XN_SKEL_LEFT_ELBOW);
+        drawLimb(processImage, aUsers[i], XN_SKEL_LEFT_ELBOW, XN_SKEL_LEFT_HAND);
 
-        DrawLimb(processImage, aUsers[i], XN_SKEL_NECK, XN_SKEL_RIGHT_SHOULDER);
-        DrawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_SHOULDER, XN_SKEL_RIGHT_ELBOW);
-        DrawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_ELBOW, XN_SKEL_RIGHT_HAND);
+        drawLimb(processImage, aUsers[i], XN_SKEL_NECK, XN_SKEL_RIGHT_SHOULDER);
+        drawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_SHOULDER, XN_SKEL_RIGHT_ELBOW);
+        drawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_ELBOW, XN_SKEL_RIGHT_HAND);
 
-        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_SHOULDER, XN_SKEL_TORSO);
-        DrawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_SHOULDER, XN_SKEL_TORSO);
+        drawLimb(processImage, aUsers[i], XN_SKEL_LEFT_SHOULDER, XN_SKEL_TORSO);
+        drawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_SHOULDER, XN_SKEL_TORSO);
 
-        DrawLimb(processImage, aUsers[i], XN_SKEL_TORSO, XN_SKEL_LEFT_HIP);
-        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_HIP, XN_SKEL_LEFT_KNEE);
-        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_KNEE, XN_SKEL_LEFT_FOOT);
+        drawLimb(processImage, aUsers[i], XN_SKEL_TORSO, XN_SKEL_LEFT_HIP);
+        drawLimb(processImage, aUsers[i], XN_SKEL_LEFT_HIP, XN_SKEL_LEFT_KNEE);
+        drawLimb(processImage, aUsers[i], XN_SKEL_LEFT_KNEE, XN_SKEL_LEFT_FOOT);
 
-        DrawLimb(processImage, aUsers[i], XN_SKEL_TORSO, XN_SKEL_RIGHT_HIP);
-        DrawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_HIP, XN_SKEL_RIGHT_KNEE);
-        DrawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_KNEE, XN_SKEL_RIGHT_FOOT);
+        drawLimb(processImage, aUsers[i], XN_SKEL_TORSO, XN_SKEL_RIGHT_HIP);
+        drawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_HIP, XN_SKEL_RIGHT_KNEE);
+        drawLimb(processImage, aUsers[i], XN_SKEL_RIGHT_KNEE, XN_SKEL_RIGHT_FOOT);
 
-        DrawLimb(processImage, aUsers[i], XN_SKEL_LEFT_HIP, XN_SKEL_RIGHT_HIP);
+        drawLimb(processImage, aUsers[i], XN_SKEL_LEFT_HIP, XN_SKEL_RIGHT_HIP);
     }
-    
+
     mBinSkeleton.type = BINARY_IMAGE;
     mBinSkeleton.image.width = processImage.cols;
     mBinSkeleton.image.height = processImage.rows;
@@ -504,6 +521,14 @@ void UKinectOpenNI::getSkeleton(UImage src) {
     memcpy(mBinSkeleton.image.data, processImage.data, mBinSkeleton.image.size);
     mBinSkeleton.image.imageFormat = src.imageFormat;
     skeleton = mBinSkeleton;
+}
+
+bool UKinectOpenNI::jointCoordinateInImageArea(XnPoint3D joint) {
+    if (joint.X < 0 || joint.X >= skeletonWidth.as<int>())
+        return false;
+    if (joint.Y < 0 || joint.Y >= skeletonHeight.as<int>())
+        return false;
+    return true;
 }
 
 /*

@@ -103,7 +103,7 @@ public:
     urbi::UVar imageWidth;      /**< Image width from Kinect camera */  
     urbi::UVar imageHeight;     /**< Image height from Kinect camera */  
 
-    urbi::UVar depth;           /**< Depth map from Kinect camera */
+    urbi::UVar depth;           /**< Depth map from Kinect camera, unit value in 25 mm */
     urbi::UVar depthWidth;      /**< Depth map width from Kinect camera */
     urbi::UVar depthHeight;     /**< Depth map height from Kinect camera */
 
@@ -114,7 +114,6 @@ public:
     urbi::UVar jointConfidence; /**< Confidence level for joints detection */
 
     urbi::UVar fps;             /**< Number of FPS */
-    urbi::UVar notify;          /**< Notify flag*/
 
     /**
      * Set the Kinect head to given angle
@@ -204,6 +203,13 @@ public:
     std::vector<int> getUsersID();
     
     /**
+     * Allow to obtain the list of visible user ID list. User is visible if
+     * its torso is visible.
+     * @return Return vector of user ID list.
+     */
+    std::vector<int> getVisibleUsersID();
+    
+    /**
      * Check if user posture of a given number is being tracked
      * @param nr User number
      * @return Return the true if user is tracked. Otherwise false.
@@ -259,8 +265,9 @@ private:
     XnUserID aUsers[MAX_NUM_USERS];
 
     // user component functions
-    void DrawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJoint eJoint1, XnSkeletonJoint eJoint2);
+    void drawLimb(cv::Mat& processImage, XnUserID player, XnSkeletonJoint eJoint1, XnSkeletonJoint eJoint2);
     XnSkeletonJoint jointNumberToSkeleton(unsigned int jointNumber);
+    bool jointCoordinateInImageArea(XnPoint3D joint);
 };
 
 #endif	/* UKINECTOPENNI_H */

@@ -70,7 +70,39 @@ after configuring project type
 
 make
 
+--------------------------------------------------------------------------------
+MODULE FUNCTIONS
+--------------------------------------------------------------------------------
 
+# initialization of module with specific components boolean flags
+UKinectOpenNI.new(activateImageComponent, activateDepthComponent, activateUserComponent);
+
+UKinectOpenNI.image;        - access to UImage with camera image  
+UKinectOpenNI.imageWidth;   - image width
+UKinectOpenNI.imageHeight;  - image height
+UKinectOpenNI.depth;        - access to UImage with depth map image, unit value in 25 mm 
+UKinectOpenNI.depthWidth;   - image width
+UKinectOpenNI.depthHeight;  - image height
+UKinectOpenNI.numUsers;     - number of detected user
+UKinectOpenNI.skeleton;     - access to UImage with depth map image
+UKinectOpenNI.jointConfidence; - acces to joint identification confidence level 0-1
+UKinectOpenNI.fps;          - module performance Frames Pers Seconds max 30
+
+UKinectOpenNI.motorMove(absolutAngle);  - move motor head to given angle
+UKinectOpenNI.refreshData();    - obtain new data from Kinect
+UKinectOpenNI.getImage();   - update camera image if posible
+UKinectOpenNI.getDepth();   - update depth map image if possible
+UKinectOpenNI.getUsers();   - update data about users if possible
+UKinectOpenNI.getSkeleton(baseImage);   - draw sceletons on skeleton image based on baseImage, for examle camera image or depth map image
+
+# jointNumber starting from 1 from http://openni.org/Documentation/Reference/_xn_types_8h_ac025301dbcbd9a91e532fa3d8991361d.html#ac025301dbcbd9a91e532fa3d8991361d
+UKinectOpenNI.getJointPosition(userID, jointNumber);    - get vector of a joint possition for given user
+UKinectOpenNI.getJointImageCoordinate(userID, jointNumber); - get vector of a 2D joint ccordinate in image for given user
+UKinectOpenNI.getDepthXY(x,y);  - depth map pixel value
+UKinectOpenNI.getDepthMedianFromArea(x1, y1, x2, y2);   - depth map mediana from area 
+UKinectOpenNI.matchDepthToImage(trueOrFalse);   - fix calibration depth and image.
+UKinectOpenNI.getUsersID(); - obtain the list of tracked user ID list
+UKinectOpenNI.getVisibleUsersID();  - obtain the list of visible user ID list. User is visible if its torso is visible.    
 
 --------------------------------------------------------------------------------
 NOTES
