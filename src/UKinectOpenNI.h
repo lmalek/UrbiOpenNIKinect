@@ -123,6 +123,18 @@ public:
      */
     bool motorMove(int angle);
     
+    /**
+     * Set the Kinect led to given color
+     * 
+     * @param color value from 0 to 6 where: 0 - LED_OFF, 1 - LED_GREEN, 
+     * 2 - LED_RED, 3 - LED_YELLOW (actually orange), 
+     * 4 - LED_BLINK_YELLOW (actually orange), 5 - LED_BLINK_GREEN, 
+     * 6 - LED_BLINK_RED_YELLOW (actually red/orange)
+     * @return Return true on succes and false on failure.
+     */
+     bool setLed(int color);
+
+    
     // image component functions -----------------------------------------------
     
     /**
@@ -205,9 +217,10 @@ public:
     /**
      * Allow to obtain the list of visible user ID list. User is visible if
      * its torso is visible.
+     * @param eJoint joint number that identify that user is visible
      * @return Return vector of user ID list.
      */
-    std::vector<int> getVisibleUsersID();
+    std::vector<int> getVisibleUsersID(int eJoint);
     
     /**
      * Check if user posture of a given number is being tracked
@@ -220,7 +233,7 @@ public:
      * Get the (X,Y,Z) position of the given body joint for given user
      * @param user User number
      * @param jointNumber Joint code/number @see <a href="http://openni.org/Documentation/Reference/_xn_types_8h_ac025301dbcbd9a91e532fa3d8991361d.html#ac025301dbcbd9a91e532fa3d8991361d">XnSkeletonJoint</a>
-     * @return Return a 3 element vector with joint coordinate (X,Y,Z)
+     * @return Return a 3 element vector with joint coordinate (X,Y,Z) in [m]
      */
     std::vector<float> getJointPosition(unsigned int user, unsigned int jointNumber); 
     

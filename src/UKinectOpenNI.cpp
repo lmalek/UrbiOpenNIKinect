@@ -91,6 +91,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
 
     // Bind all functions
     UBindFunction(UKinectOpenNI, motorMove);
+    UBindFunction(UKinectOpenNI, setLed);
     UBindThreadedFunction(UKinectOpenNI, refreshData, LOCK_INSTANCE);
     UBindFunction(UKinectOpenNI, getImage);
     UBindFunction(UKinectOpenNI, getDepth);
@@ -261,8 +262,13 @@ void UKinectOpenNI::refreshData() {
 }
 
 bool UKinectOpenNI::motorMove(int angle) {
-    motors.Move(angle);
+    return motors.Move(angle);
 }
+
+bool UKinectOpenNI::setLed(int color) {
+    return motors.Led(static_cast<KinectMotors::LedColor>(color));
+}
+
 
 void UKinectOpenNI::getImage() {
     if (!imageActive) return;
@@ -389,16 +395,15 @@ std::vector<int> UKinectOpenNI::getUsersID() {
     return usersID;
 }
 
-std::vector<int> UKinectOpenNI::getVisibleUsersID() {
+std::vector<int> UKinectOpenNI::getVisibleUsersID(int eJoint) {
     XnSkeletonJointPosition joint;
-    XnSkeletonJoint eJoint;
     std::vector<int> usersID;
     for (XnUInt16 i = 0; i < nUsers; i++) {
         if (userGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
-            userGenerator.GetSkeletonCap().GetSkeletonJointPosition(aUsers[i], XN_SKEL_TORSO, joint);
+            userGenerator.GetSkeletonCap().GetSkeletonJointPosition(aUsers[i], (XnSkeletonJoint) eJoint, joint);
             XnPoint3D pt[1] = {joint.position};
             depthGenerator.ConvertRealWorldToProjective(1, pt, pt);
-            if (jointCoordinateInImageArea(pt[0]))
+            if (jointCoordinateInImageArea(pt[0]) && (joint.fConfidence >jointConfidence.as<double>()))
                 usersID.push_back(aUsers[i]);
         }
     }
@@ -512,6 +517,9 @@ void UKinectOpenNI::getSkeleton(UImage src) {
 
         drawLimb(processImage, aUsers[i], XN_SKEL_LEFT_HIP, XN_SKEL_RIGHT_HIP);
     }
+    
+    skeletonWidth = processImage.cols;
+    skeletonHeight = processImage.rows;
 
     mBinSkeleton.type = BINARY_IMAGE;
     mBinSkeleton.image.width = processImage.cols;

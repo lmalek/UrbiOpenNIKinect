@@ -17,12 +17,12 @@ bool KinectMotors::Open()
     XnUInt32 count;
     XnStatus res;
     
-    // Init OpenNI USB
+    // Init OpenNI USB 
     res = xnUSBInit();
-    if (res != XN_STATUS_OK)
+    if (res != XN_STATUS_OK || res != XN_STATUS_USB_ALREADY_INIT)
     {
         xnPrintError(res, "xnUSBInit failed");
-        return false;
+        return false; 
     }
     
     // Open all "Kinect motor" USB devices
@@ -97,3 +97,19 @@ bool KinectMotors::Move(int angle)
     return true;
 }
 
+bool KinectMotors::Led(KinectMotors::LedColor color)
+{
+    XnStatus res;
+    
+    // Send move control requests
+    for (XnUInt32 index = 0; index < m_num; ++index)
+    {
+        res = xnUSBSendControl(m_devs[index], XN_USB_CONTROL_TYPE_VENDOR, 0x06, color, 0x00, NULL, 0, 0);
+        if (res != XN_STATUS_OK)
+        {
+            xnPrintError(res, "xnUSBSendControl failed");
+            return false;
+        }
+    }
+    return true;
+}
