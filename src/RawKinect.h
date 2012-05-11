@@ -6,7 +6,7 @@
 /**
  * Class to control Kinect's motor.
  */
-class KinectMotors {
+class RawKinect {
 public:
 
     enum {
@@ -24,32 +24,34 @@ public:
     };
 
 public:
-    KinectMotors();
-    virtual ~KinectMotors();
+    RawKinect();
+    virtual ~RawKinect();
 
     /**
      * Open device.
      * @return true if succeeded, false - overwise
      */
-    bool Open();
+    bool open();
 
     /**
      * Close device.
      */
-    void Close();
+    void close();
 
     /**
      * Move motor up or down to specified angle value.
      * @param angle angle value
      * @return true if succeeded, false - overwise
      */
-    bool Move(int angle);
+    bool moveMotor(int angle);
 
     /**
      * Control kinect led 
      * @param color led control value
      */
-    bool Led(LedColor color);
+    bool setLed(LedColor color);
+    
+    bool getAccelerometer(float &x, float &y, float &z);
 
 private:
     XN_USB_DEV_HANDLE m_devs[MaxDevs];

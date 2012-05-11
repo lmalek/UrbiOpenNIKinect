@@ -54,7 +54,7 @@ UKinectOpenNI::~UKinectOpenNI() {
         deactivateDepth();
     if (usersActive)
         deactivateUsers();
-    motors.Close();
+    rawKinect.close();
     context.Release();
 }
 
@@ -92,6 +92,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     // Bind all functions
     UBindFunction(UKinectOpenNI, motorMove);
     UBindFunction(UKinectOpenNI, setLed);
+    UBindFunction(UKinectOpenNI, getAccelerometer);
     UBindThreadedFunction(UKinectOpenNI, refreshData, LOCK_INSTANCE);
     UBindFunction(UKinectOpenNI, getImage);
     UBindFunction(UKinectOpenNI, getDepth);
@@ -123,7 +124,7 @@ void UKinectOpenNI::init(bool imageFlag, bool depthFlag, bool userFlag) {
     if (userFlag)
         activateUsers();
 
-    motors.Open(); // open direct acces to motors
+    rawKinect.open(); // open direct acces to motors
 
     // Set update period 30
     fps = 30;
@@ -262,13 +263,22 @@ void UKinectOpenNI::refreshData() {
 }
 
 bool UKinectOpenNI::motorMove(int angle) {
-    return motors.Move(angle);
+    return rawKinect.moveMotor(angle);
 }
 
 bool UKinectOpenNI::setLed(int color) {
-    return motors.Led(static_cast<KinectMotors::LedColor>(color));
+    return rawKinect.setLed(static_cast<RawKinect::LedColor>(color));
 }
 
+std::vector<float> UKinectOpenNI::getAccelerometer() {
+    std::vector<float> gravity;
+    float x, y, z;
+    rawKinect.getAccelerometer(x, y, z);
+    gravity.push_back(x);
+    gravity.push_back(y);
+    gravity.push_back(z);
+    return gravity;
+}
 
 void UKinectOpenNI::getImage() {
     if (!imageActive) return;

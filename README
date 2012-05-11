@@ -90,6 +90,7 @@ UKinectOpenNI.fps;          - module performance Frames Pers Seconds max 30
 
 UKinectOpenNI.motorMove(absolutAngle);  - move motor head to given angle
 UKinectOpenNI.setLed(color);  - move motor head to given angle
+UKinectOpenNI.getAccelerometer();       - acces gravity vector coordinate XYZ, X - to Kinect rigth, Y - to Kinect botom, Z - to Kinect rear
 UKinectOpenNI.refreshData();    - obtain new data from Kinect
 UKinectOpenNI.getImage();   - update camera image if posible
 UKinectOpenNI.getDepth();   - update depth map image if possible

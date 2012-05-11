@@ -34,7 +34,7 @@
 #  include <cv.h>
 #endif
 
-#include "KinectMotors.h"
+#include "RawKinect.h"
 
 #define MAX_NUM_USERS 10
 
@@ -134,6 +134,13 @@ public:
      */
      bool setLed(int color);
 
+    /**
+     * Get gravity vector coordinates. 
+     * 
+     * @return Return a 3 element gravity vector coordinate (X,Y,Z) in [g]
+     */
+     std::vector<float> getAccelerometer();
+     
     
     // image component functions -----------------------------------------------
     
@@ -254,7 +261,7 @@ private:
 
     void fpsChanged();
     
-    KinectMotors motors;        /**< Direct kinect motor acces */
+    RawKinect rawKinect;         /**< Direct kinect motor acces */
 
     xn::Context context;        /**< OpenNI context for connection with Kinect */
 
